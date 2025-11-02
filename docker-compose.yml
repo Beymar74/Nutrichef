@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: nutrichef_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nutrichef
+      POSTGRES_USER: nutrichef_user
+      POSTGRES_PASSWORD: nutrichef_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nutrichef_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nutrichef_user -d nutrichef"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Laravel API
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nutrichef_api
+    restart: unless-stopped
+    working_dir: /var/www
+    user: "0:0"
+    volumes:
+      - ./backend:/var/www
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: nutrichef
+      DB_USERNAME: nutrichef_user
+      DB_PASSWORD: nutrichef_password
+    networks:
+      - nutrichef_network
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+  # pgAdmin (Opcional - para administrar PostgreSQL visualmente)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: nutrichef_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@nutrichef.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - nutrichef_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  nutrichef_network:
+    driver: bridge
