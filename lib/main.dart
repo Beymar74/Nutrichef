@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'inicio.dart';
+import 'login.dart';
 
 void main() {
   runApp(const NutriChefApp());
@@ -14,15 +14,10 @@ class NutriChefApp extends StatelessWidget {
       title: 'NutriChef',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF9800),
-          primary: const Color(0xFFFF9800),
-          secondary: const Color(0xFFFFD54F),
-        ),
-        useMaterial3: true,
+        primarySwatch: Colors.orange,
         fontFamily: 'Roboto',
       ),
-      home: const Inicio(),
+      home: const Login(), // CAMBIAMOS DIRECTO A LOGIN
     );
   }
 }
