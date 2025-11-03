@@ -13,12 +13,20 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'usuarios';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'nombre',
+        'apellido',
         'email',
         'password',
     ];
@@ -41,7 +49,6 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

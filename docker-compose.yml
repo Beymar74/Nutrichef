@@ -38,6 +38,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       DB_CONNECTION: pgsql
       DB_HOST: postgres
@@ -45,27 +47,91 @@ services:
       DB_DATABASE: nutrichef
       DB_USERNAME: nutrichef_user
       DB_PASSWORD: nutrichef_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     networks:
       - nutrichef_network
     command: php artisan serve --host=0.0.0.0 --port=8000
 
-  # pgAdmin (Opcional - para administrar PostgreSQL visualmente)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: nutrichef_pgadmin
+  # Adminer con tema moderno
+  adminer:
+    image: adminer:latest
+    container_name: nutrichef_adminer
     restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@nutrichef.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
     ports:
-      - "5050:80"
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: nette
     depends_on:
       - postgres
     networks:
       - nutrichef_network
 
+  # MinIO para imágenes
+  minio:
+    image: minio/minio:latest
+    container_name: nutrichef_storage
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: nutrichef
+      MINIO_ROOT_PASSWORD: nutrichef123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - nutrichef_network
+
+  # Redis para caché
+  redis:
+    image: redis:7-alpine
+    container_name: nutrichef_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nutrichef_network
+
+  # Mailhog para emails
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: nutrichef_mail
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - nutrichef_network
+
+  # Elasticsearch para búsqueda
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: nutrichef_search
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - nutrichef_network
+
 volumes:
   postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:
