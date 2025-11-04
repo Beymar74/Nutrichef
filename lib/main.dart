@@ -11,12 +11,12 @@ class NutriChefApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'NutriChef',
+      title: 'Nutrichef',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF9800),
-          primary: const Color(0xFFFF9800),
+          seedColor: const Color(0xFFFF8C21), // Calabaza-Naranja
+          primary: const Color(0xFFFF8C21),
           secondary: const Color(0xFFFFD54F),
         ),
         useMaterial3: true,

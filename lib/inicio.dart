@@ -20,9 +20,9 @@ class _InicioState extends State<Inicio> {
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const Login()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
   }
 
   @override
@@ -34,9 +34,9 @@ class _InicioState extends State<Inicio> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFF9800),
-              Color(0xFFFFB74D),
-              Color(0xFFFFD54F),
+              Color(0xFFFF8C21), // Calabaza-Naranja
+              Color(0xFFFF9F4D),
+              Color(0xFFFFB366),
             ],
           ),
         ),
@@ -44,20 +44,17 @@ class _InicioState extends State<Inicio> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo con animación de escala
+              // Logo - VERSIÓN CON TAMAÑO AUMENTADO
               TweenAnimationBuilder(
                 tween: Tween<double>(begin: 0.0, end: 1.0),
                 duration: const Duration(milliseconds: 800),
                 curve: Curves.elasticOut,
                 builder: (context, double value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: child,
-                  );
+                  return Transform.scale(scale: value, child: child);
                 },
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: 150,
+                  height: 150,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -69,10 +66,10 @@ class _InicioState extends State<Inicio> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.restaurant_menu,
-                    size: 70,
-                    color: Color(0xFFFF9800),
+                  padding: const EdgeInsets.all(30),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
