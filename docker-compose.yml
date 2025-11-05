@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: nutrichef_user
       POSTGRES_PASSWORD: nutrichef_password
     ports:
-      - "5432:5432"
+      - "15432:5432"  # Puerto alto para PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -34,7 +34,7 @@ services:
     volumes:
       - ./backend:/var/www
     ports:
-      - "8000:8000"
+      - "18000:8000"  # Puerto alto para Laravel
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,7 +59,7 @@ services:
     container_name: nutrichef_adminer
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "18080:8080"  # Puerto alto para Adminer
     environment:
       ADMINER_DEFAULT_SERVER: postgres
       ADMINER_DESIGN: nette
@@ -74,8 +74,8 @@ services:
     container_name: nutrichef_storage
     restart: unless-stopped
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "19000:9000"  # Puerto alto para MinIO API
+      - "19001:9001"  # Puerto alto para MinIO Console
     environment:
       MINIO_ROOT_USER: nutrichef
       MINIO_ROOT_PASSWORD: nutrichef123
@@ -91,7 +91,7 @@ services:
     container_name: nutrichef_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "16379:6379"  # Puerto alto para Redis
     volumes:
       - redis_data:/data
     networks:
@@ -103,8 +103,8 @@ services:
     container_name: nutrichef_mail
     restart: unless-stopped
     ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
+      - "11025:1025"  # Puerto alto para SMTP
+      - "18025:8025"  # Puerto alto para Web UI
     networks:
       - nutrichef_network
 
@@ -118,7 +118,7 @@ services:
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
-      - "9200:9200"
+      - "19200:9200"  # Puerto alto para Elasticsearch
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:

@@ -30,7 +30,16 @@ WORKDIR /var/www
 # Copiar archivos del proyecto
 COPY backend/ /var/www/
 
-# Dar permisos correctos ANTES de cambiar de usuario
+# IMPORTANTE: Instalar dependencias de Composer
+RUN composer install --no-interaction --optimize-autoloader --no-dev
+
+# Generar el archivo .env si no existe (copiar desde .env.example)
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
+
+# Generar la clave de la aplicación
+RUN php artisan key:generate --force
+
+# Dar permisos correctos DESPUÉS de instalar dependencias
 RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage \
     && chmod -R 775 /var/www/bootstrap/cache
