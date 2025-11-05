@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'login.dart';
+import 'bienvenida.dart';
 
 class Inicio extends StatefulWidget {
   const Inicio({super.key});
@@ -13,16 +13,16 @@ class _InicioState extends State<Inicio> {
   @override
   void initState() {
     super.initState();
-    _navigateToLogin();
+    _navigateToBienvenida();
   }
 
-  void _navigateToLogin() async {
+  void _navigateToBienvenida() async {
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
 
     Navigator.of(
       context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const Bienvenida()));
   }
 
   @override
@@ -91,7 +91,7 @@ class _InicioState extends State<Inicio> {
                   );
                 },
                 child: const Text(
-                  'NutriChef',
+                  'Nutrichef',
                   style: TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.bold,
@@ -131,7 +131,7 @@ class _InicioState extends State<Inicio> {
                   color: Colors.white,
                   strokeWidth: 3,
                 ),
-              ),
+              ), 
             ],
           ),
         ),
