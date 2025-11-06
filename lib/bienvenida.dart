@@ -6,7 +6,7 @@ class Bienvenida extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('✅ Pantalla BIENVENIDA cargada');
+    print('');
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -71,7 +71,7 @@ class Bienvenida extends StatelessWidget {
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            print('❌ ERROR: No se pudo cargar sand.png');
+                            print('ERROR: No se pudo cargar sand.png');
                             return Container(
                               height: 300,
                               color: Colors.grey[200],
@@ -96,7 +96,7 @@ class Bienvenida extends StatelessWidget {
                   height: 55,
                   child: ElevatedButton(
                     onPressed: () {
-                      print('➡️ Navegando a Selección Usuario');
+                      print('Navegando a Selección Usuario');
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => const SeleccionUsuario()),
                       );
