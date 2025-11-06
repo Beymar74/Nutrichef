@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login.dart';
+import 'services/api_service.dart';
 
 class Registro extends StatefulWidget {
   const Registro({super.key});
@@ -19,15 +20,17 @@ class _RegistroState extends State<Registro> {
   bool _ocultarPassword = true;
   bool _ocultarConfirmarPassword = true;
   bool _aceptaTerminos = false;
+  bool _isLoading = false;
 
-  void _registrarUsuario() {
-    String nombre = _nombreCompletoController.text;
-    String email = _emailController.text;
-    String celular = _celularController.text;
-    String fechaNacimiento = _fechaNacimientoController.text;
+  Future<void> _registrarUsuario() async {
+    String nombre = _nombreCompletoController.text.trim();
+    String email = _emailController.text.trim();
+    String celular = _celularController.text.trim();
+    String fechaNacimiento = _fechaNacimientoController.text.trim();
     String password = _passwordController.text;
     String confirmarPassword = _confirmarPasswordController.text;
 
+    // Validaciones
     if (nombre.isEmpty || email.isEmpty || celular.isEmpty || 
         fechaNacimiento.isEmpty || password.isEmpty || confirmarPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,6 +52,16 @@ class _RegistroState extends State<Registro> {
       return;
     }
 
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La contraseña debe tener al menos 6 caracteres'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (!_aceptaTerminos) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -59,18 +72,177 @@ class _RegistroState extends State<Registro> {
       return;
     }
 
-    print('Nombre: $nombre');
-    print('Email: $email');
-    print('Celular: $celular');
-    print('Fecha de Nacimiento: $fechaNacimiento');
-    print('Password: $password');
+    // Convertir fecha de DD / MM / AAAA a AAAA-MM-DD para Laravel
+    String fechaFormateada;
+    try {
+      List<String> partes = fechaNacimiento.replaceAll(' ', '').split('/');
+      if (partes.length == 3) {
+        fechaFormateada = '${partes[2]}-${partes[1]}-${partes[0]}';
+      } else {
+        throw Exception('Formato de fecha inválido');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Formato de fecha inválido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    // Aquí iría la lógica de registro
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('¡Registro exitoso!'),
-        backgroundColor: Colors.green,
-      ),
+    setState(() => _isLoading = true);
+
+    // Llamar a la API
+    final response = await ApiService.register(
+      nombreCompleto: nombre,
+      email: email,
+      celular: celular,
+      fechaNacimiento: fechaFormateada,
+      password: password,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (response['success'] == true) {
+      // Mostrar diálogo de éxito
+      _mostrarDialogoExito(nombre);
+    } else {
+      String errorMessage = response['message'] ?? 'Error al registrar';
+      
+      // Mostrar errores de validación si existen
+      if (response['errors'] != null) {
+        final errors = response['errors'] as Map<String, dynamic>;
+        errorMessage = errors.values.first[0];
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _mostrarDialogoExito(String nombreUsuario) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 35),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Título
+                const Text(
+                  '¡Registro\nExitoso!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFF8C21),
+                    height: 1.2,
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // Imagen de perfil con círculo amarillo (más grande y ajustada)
+                Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD54F),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/profile2.png',
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.person,
+                          size: 70,
+                          color: Color(0xFFFF8C21),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // Mensaje de bienvenida
+                const Text(
+                  '¡Bienvenido/a a NutriChef!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  'Tu cuenta está lista.\nComienza a descubrir recetas deliciosas y saludables.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.5,
+                  ),
+                ),
+
+                const SizedBox(height: 35),
+
+                // Botón continuar
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Cerrar diálogo
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const Login()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF8C21),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Continuar',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -151,6 +323,7 @@ class _RegistroState extends State<Registro> {
                 ),
                 child: TextField(
                   controller: _nombreCompletoController,
+                  enabled: !_isLoading,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF333333),
@@ -198,6 +371,7 @@ class _RegistroState extends State<Registro> {
                 ),
                 child: TextField(
                   controller: _emailController,
+                  enabled: !_isLoading,
                   keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(
                     fontSize: 14,
@@ -246,6 +420,7 @@ class _RegistroState extends State<Registro> {
                 ),
                 child: TextField(
                   controller: _celularController,
+                  enabled: !_isLoading,
                   keyboardType: TextInputType.phone,
                   style: const TextStyle(
                     fontSize: 14,
@@ -295,6 +470,7 @@ class _RegistroState extends State<Registro> {
                 child: TextField(
                   controller: _fechaNacimientoController,
                   readOnly: true,
+                  enabled: !_isLoading,
                   onTap: _seleccionarFecha,
                   style: const TextStyle(
                     fontSize: 14,
@@ -343,6 +519,7 @@ class _RegistroState extends State<Registro> {
                 ),
                 child: TextField(
                   controller: _passwordController,
+                  enabled: !_isLoading,
                   obscureText: _ocultarPassword,
                   style: const TextStyle(
                     fontSize: 14,
@@ -405,6 +582,7 @@ class _RegistroState extends State<Registro> {
                 ),
                 child: TextField(
                   controller: _confirmarPasswordController,
+                  enabled: !_isLoading,
                   obscureText: _ocultarConfirmarPassword,
                   style: const TextStyle(
                     fontSize: 14,
@@ -449,7 +627,7 @@ class _RegistroState extends State<Registro> {
                 children: [
                   Checkbox(
                     value: _aceptaTerminos,
-                    onChanged: (value) {
+                    onChanged: _isLoading ? null : (value) {
                       setState(() {
                         _aceptaTerminos = value ?? false;
                       });
@@ -479,7 +657,7 @@ class _RegistroState extends State<Registro> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _registrarUsuario,
+                  onPressed: _isLoading ? null : _registrarUsuario,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF8C21),
                     foregroundColor: Colors.white,
@@ -488,14 +666,24 @@ class _RegistroState extends State<Registro> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    disabledBackgroundColor: const Color(0xFFFF8C21).withOpacity(0.6),
                   ),
-                  child: const Text(
-                    'Registrarme!',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Registrarme!',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 
@@ -513,16 +701,18 @@ class _RegistroState extends State<Registro> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () {
+                    onTap: _isLoading ? null : () {
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => const Login()),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Inicia Sesión',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFFF8C21),
+                        color: _isLoading 
+                            ? const Color(0xFFFF8C21).withOpacity(0.5)
+                            : const Color(0xFFFF8C21),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
