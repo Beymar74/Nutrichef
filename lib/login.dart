@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'registro.dart';
+import 'home.dart';
+import 'services/api_service.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -12,9 +14,14 @@ class _LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _ocultarPassword = true;
+  bool _isLoading = false;
 
-  void _iniciarSesion() {
-    String email = _emailController.text;
+  // ========================
+  // FUNCIONES
+  // ========================
+
+  Future<void> _iniciarSesion() async {
+    String email = _emailController.text.trim();
     String password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
@@ -27,8 +34,41 @@ class _LoginState extends State<Login> {
       return;
     }
 
-    print('Email: $email');
-    print('Password: $password');
+    setState(() => _isLoading = true);
+
+    // Llamar a la API
+    final response = await ApiService.login(
+      email: email,
+      password: password,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (response['success'] == true) {
+      // Obtener el nombre del usuario desde la respuesta de la API
+      String nombreUsuario = response['user']['nombre_completo'] ?? 'Usuario';
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message']),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // 🎉 Navegar al Home pasando el nombre del usuario
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => Home(nombreUsuario: nombreUsuario),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message'] ?? 'Error al iniciar sesión'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _registrarse() {
@@ -63,6 +103,10 @@ class _LoginState extends State<Login> {
     );
   }
 
+  // ========================
+  // BUILD
+  // ========================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,7 +118,7 @@ class _LoginState extends State<Login> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo arriba
+                // LOGO
                 Image.asset(
                   'assets/images/logo.png',
                   width: 100,
@@ -102,7 +146,7 @@ class _LoginState extends State<Login> {
 
                 const SizedBox(height: 40),
 
-                // LABEL EMAIL
+                // EMAIL
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -114,10 +158,7 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
-                // CAMPO EMAIL
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFD54F),
@@ -150,7 +191,7 @@ class _LoginState extends State<Login> {
 
                 const SizedBox(height: 20),
 
-                // LABEL CONTRASEÑA
+                // CONTRASEÑA
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -162,10 +203,7 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
-                // CAMPO PASSWORD
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFD54F),
@@ -217,7 +255,7 @@ class _LoginState extends State<Login> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: _iniciarSesion,
+                    onPressed: _isLoading ? null : _iniciarSesion,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF8C21),
                       foregroundColor: Colors.white,
@@ -227,13 +265,22 @@ class _LoginState extends State<Login> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Iniciar Sesión',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Iniciar Sesión',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
 
@@ -266,7 +313,7 @@ class _LoginState extends State<Login> {
 
                 const SizedBox(height: 25),
 
-                // FORGOT PASSWORD
+                // OLVIDÉ CONTRASEÑA
                 TextButton(
                   onPressed: _olvidoPassword,
                   child: const Text(
@@ -285,13 +332,13 @@ class _LoginState extends State<Login> {
                 Row(
                   children: [
                     Expanded(child: Divider(color: Colors.grey[400])),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 15),
                       child: Text(
                         'O',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Colors.grey,
                         ),
                       ),
                     ),
@@ -340,7 +387,11 @@ class _LoginState extends State<Login> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.facebook, size: 24, color: Color(0xFF4267B2)),
+                    icon: const Icon(
+                      Icons.facebook,
+                      size: 24,
+                      color: Color(0xFF4267B2),
+                    ),
                     label: const Text(
                       'Continuar con Facebook',
                       style: TextStyle(
