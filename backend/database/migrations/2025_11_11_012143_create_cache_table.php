@@ -6,22 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('favoritos', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::create('cache', function (Blueprint $table) {
+            $table->string('key', 255)->primary();
+            $table->text('value');
+            $table->bigInteger('expiration');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('favoritos');
+        Schema::dropIfExists('cache');
     }
 };
