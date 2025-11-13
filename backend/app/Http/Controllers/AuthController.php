@@ -2,101 +2,100 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Usuario;
+use App\Models\Persona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    /**
-     * Registrar nuevo usuario
-     */
+    // Registro de usuario
     public function register(Request $request)
     {
-        // Validar datos
         $validator = Validator::make($request->all(), [
-            'nombre_completo' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'celular' => 'required|string|max:20',
-            'fecha_nacimiento' => 'required|date',
-            'password' => 'required|string|min:6',
+            // Datos de persona
+            'nombres' => 'required|string|max:100',
+            'apellido_paterno' => 'required|string|max:100',
+            'apellido_materno' => 'nullable|string|max:100',
+            'telefono' => 'nullable|string|max:20',
+            'fecha_nacimiento' => 'nullable|date',
+
+            // Datos de usuario
+            'email' => 'required|email|unique:usuarios,email',
+            'password' => 'required|string|min:6|confirmed', // 'password_confirmation'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        try {
-            // Crear usuario
-            $user = User::create([
-                'nombre_completo' => $request->nombre_completo,
-                'email' => $request->email,
-                'celular' => $request->celular,
-                'fecha_nacimiento' => $request->fecha_nacimiento,
-                'password' => Hash::make($request->password),
-            ]);
+        // Crear registro en PERSONAS
+        $persona = Persona::create([
+            'nombres' => $request->nombres,
+            'apellido_paterno' => $request->apellido_paterno,
+            'apellido_materno' => $request->apellido_materno,
+            'telefono' => $request->telefono,
+            'fecha_nacimiento' => $request->fecha_nacimiento,
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => '¡Registro exitoso!',
-                'user' => [
-                    'id' => $user->id,
-                    'nombre_completo' => $user->nombre_completo,
-                    'email' => $user->email,
-                ]
-            ], 201);
+        // ==========================================================
+        // 🧠 Generar automáticamente un "name" corto (ej: kiap)
+        // ==========================================================
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar usuario',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        // Tomar solo el primer nombre (si hay más de uno)
+        $primerNombre = explode(' ', trim($request->nombres))[0] ?? '';
+        $apellidoPaterno = trim($request->apellido_paterno ?? '');
+
+        // Quitar tildes y caracteres especiales
+        $primerNombre = Str::ascii($primerNombre);
+        $apellidoPaterno = Str::ascii($apellidoPaterno);
+
+        // Obtener las 2 primeras letras de cada uno
+        $parteNombre = strtolower(substr($primerNombre, 0, 2));
+        $parteApellido = strtolower(substr($apellidoPaterno, 0, 2));
+
+        // Unirlos → ejemplo: "kiap"
+        $nameGenerado = $parteNombre . $parteApellido;
+
+        // Crear registro en USUARIOS
+        $usuario = Usuario::create([
+            'id_rol' => 2, // Rol por defecto: user
+            'id_persona' => $persona->id,
+            'name' => $nameGenerado,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'descripcion_perfil' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Usuario registrado correctamente',
+            'usuario' => $usuario->load('persona', 'rol'),
+        ], 201);
     }
 
-    /**
-     * Iniciar sesión
-     */
+    // Login de usuario
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => 'required|string',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Completa todos los campos',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Buscar usuario
-        $user = User::where('email', $request->email)->first();
+        $usuario = Usuario::where('email', $request->email)->first();
 
-        // Verificar usuario y contraseña
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciales incorrectas'
-            ], 401);
+        if (!$usuario || !Hash::check($request->password, $usuario->password)) {
+            return response()->json(['message' => 'Credenciales incorrectas'], 401);
         }
 
         return response()->json([
-            'success' => true,
-            'message' => '¡Bienvenido!',
-            'user' => [
-                'id' => $user->id,
-                'nombre_completo' => $user->nombre_completo,
-                'email' => $user->email,
-            ]
+            'message' => 'Inicio de sesión exitoso',
+            'usuario' => $usuario->load('persona', 'rol'),
         ], 200);
     }
 }
