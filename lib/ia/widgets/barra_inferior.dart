@@ -14,42 +14,73 @@ class BarraInferior extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color naranja = Color(0xFFFF8C21);
 
-    return Container(
-      height: 70,
-      decoration: const BoxDecoration(
-        color: naranja,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, -2),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20), // separación del borde inferior
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 14),
+          decoration: BoxDecoration(
+            color: naranja,
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _iconoNav(Icons.home_outlined, 0, selectedIndex, onTap),
-          _iconoNav(Icons.chat_bubble_outline, 1, selectedIndex, onTap),
-          _iconoNav(Icons.layers_outlined, 2, selectedIndex, onTap),
-          _iconoNav(Icons.person_outline, 3, selectedIndex, onTap),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _item(
+                icon: Icons.home_outlined,
+                index: 0,
+                selectedIndex: selectedIndex,
+                onTap: onTap,
+              ),
+              const SizedBox(width: 40),
+              _item(
+                icon: Icons.chat_bubble_outline,
+                index: 1,
+                selectedIndex: selectedIndex,
+                onTap: onTap,
+              ),
+              const SizedBox(width: 40),
+              _item(
+                icon: Icons.layers_outlined,
+                index: 2,
+                selectedIndex: selectedIndex,
+                onTap: onTap,
+              ),
+              const SizedBox(width: 40),
+              _item(
+                icon: Icons.person_outline,
+                index: 3,
+                selectedIndex: selectedIndex,
+                onTap: onTap,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _iconoNav(IconData icon, int index, int selected, Function(int) onTap) {
-    final bool activo = index == selected;
+  Widget _item({
+    required IconData icon,
+    required int index,
+    required int selectedIndex,
+    required Function(int) onTap,
+  }) {
+    final bool active = selectedIndex == index;
+
     return GestureDetector(
       onTap: () => onTap(index),
       child: Icon(
         icon,
-        color: activo ? Colors.white : Colors.white70,
-        size: activo ? 30 : 26,
+        color: active ? Colors.white : Colors.white70,
+        size: 28,
       ),
     );
   }
