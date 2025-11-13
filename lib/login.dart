@@ -19,7 +19,7 @@ class _LoginState extends State<Login> {
   bool _ocultarPassword = true;
   bool _isLoading = false;
 
-  // 🔹 LOGIN NORMAL
+  //LOGIN NORMAL
   Future<void> _iniciarSesion() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text;
