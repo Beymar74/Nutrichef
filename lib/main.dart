@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'inicio.dart';
 
+
 void main() {
   runApp(const NutriChefApp());
 }
+
 
 class NutriChefApp extends StatelessWidget {
   const NutriChefApp({super.key});

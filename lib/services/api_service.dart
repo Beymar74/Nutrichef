@@ -127,7 +127,37 @@ class ApiService {
       };
     }
   }
-
+  //Comnidad / prueba
+  static Future<List> obtenerRecetas(String filtro) async {
+    // Aquí conectarías con tu backend Laravel
+    // Ejemplo usando http
+    // final response = await http.get(Uri.parse('$baseUrl/api/recetas?filtro=$filtro'));
+    // return jsonDecode(response.body);
+    
+    // Simulación temporal
+    return [
+      {
+        'autor': 'josh-ryan',
+        'autor_imagen': 'https://randomuser.me/api/portraits/men/1.jpg',
+        'fecha': '2 años',
+        'imagen': 'https://example.com/pollo.jpg',
+        'titulo': 'Pollo al Curry',
+        'descripcion': 'Esta receta requiere ingredientes básicos...',
+        'tiempo': 45,
+        'vistas': 2458,
+      },
+      {
+        'autor': 'dakota.mullen',
+        'autor_imagen': 'https://randomuser.me/api/portraits/women/2.jpg',
+        'fecha': '11 meses',
+        'imagen': 'https://example.com/macarons.jpg',
+        'titulo': 'Macarons',
+        'descripcion': 'Esta receta te guiará a través del arte...',
+        'tiempo': 38,
+        'vistas': 2273,
+      },
+    ];
+  }
   /// Probar conexión con el servidor
   static Future<Map<String, dynamic>> testConnection() async {
     try {
