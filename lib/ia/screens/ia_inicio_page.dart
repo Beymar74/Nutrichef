@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'ia_camara_page.dart'; // ← Importa la siguiente pantalla
+import 'package:image_picker/image_picker.dart';  
+import 'ia_camara_page.dart';
+import 'ia_ingredientes_page.dart';
 
 class AppColors {
   static const Color primary = Color(0xFFFF8C21);
@@ -11,6 +13,18 @@ class AppColors {
 class IaInicioPage extends StatelessWidget {
   const IaInicioPage({super.key});
 
+  Future<void> _abrirGaleria(BuildContext context) async {
+    final picker = ImagePicker();
+    final XFile? imagen = await picker.pickImage(source: ImageSource.gallery);
+
+    if (imagen == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const IaIngredientesPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -21,11 +35,10 @@ class IaInicioPage extends StatelessWidget {
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // --- TEXTO PRINCIPAL ---
+              // --- Texto ---
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+                padding: const EdgeInsets.fromLTRB(30, 35, 30, 25), // ← más espacio arriba
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
@@ -38,10 +51,9 @@ class IaInicioPage extends StatelessWidget {
                         color: AppColors.textDark,
                       ),
                     ),
-                    SizedBox(height: 10),
+                    SizedBox(height: 12),
                     Text(
                       'Puedes identificar ingredientes y obtener sugerencias para preparar recetas con los ingredientes que tienes a mano, solo proporcionanos una fotografía.',
-                      textAlign: TextAlign.left,
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 15,
@@ -53,63 +65,72 @@ class IaInicioPage extends StatelessWidget {
                 ),
               ),
 
-              // --- IMAGEN DIFUMINADA ---
-              Stack(
-                children: [
-                  SizedBox(
-                    width: size.width,
-                    height: 270,
-                    child: Image.asset(
-                      'assets/images/ia_bienvenida.png',
-                      fit: BoxFit.cover,
+              // --- Imagen con degradados arriba/abajo ---
+              SizedBox(
+                width: size.width,
+                height: 270,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Image.asset(
+                        'assets/images/ia_bienvenida.png',
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                  ),
 
-                  // Degradado superior
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 80,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.white, Colors.white10],
+                    // Degradado superior
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 20, // ↑ más alto
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white,
+                              Colors.white70,
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // Degradado inferior
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    height: 80,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.white, Colors.white10],
+                    // Degradado inferior
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 20, // ↑ más alto
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.white,
+                              Colors.white70,
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
-              // --- NUEVO ESPACIADO ENTRE IMAGEN Y BOTONES ---
-              const SizedBox(height: 70),
+              const SizedBox(height: 80), // ← más espacio entre imagen y botones
 
               // --- BOTONES ---
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
-                    // Botón principal
+                    // Tomar foto
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -117,9 +138,7 @@ class IaInicioPage extends StatelessWidget {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const IaCamaraPage(),
-                            ),
+                            MaterialPageRoute(builder: (_) => const IaCamaraPage()),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -127,32 +146,29 @@ class IaInicioPage extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          elevation: 3,
                         ),
                         child: const Text(
                           'Tomar Fotografía',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w600,
-                            fontSize: 18, // ← texto más grande
+                            fontSize: 18,
                             color: Colors.white,
                           ),
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 22),
 
-                    // Botón secundario
+                    // Galería
                     SizedBox(
                       width: double.infinity,
                       height: 56,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () => _abrirGaleria(context),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
+                          side: const BorderSide(color: AppColors.primary, width: 2),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -162,7 +178,7 @@ class IaInicioPage extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w600,
-                            fontSize: 18, // ← texto más grande
+                            fontSize: 18,
                             color: AppColors.primary,
                           ),
                         ),
@@ -172,7 +188,7 @@ class IaInicioPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 60),
             ],
           ),
         ),

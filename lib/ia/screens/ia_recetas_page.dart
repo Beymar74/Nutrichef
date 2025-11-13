@@ -23,8 +23,7 @@ class _IaRecetasPageState extends State<IaRecetasPage>
     {
       'imagen': 'assets/images/1im.png',
       'titulo': 'Grilled Skewers (2 porciones)',
-      'descripcion':
-          'Jugosos pinchos con vegetales frescos y salsa casera.',
+      'descripcion': 'Jugosos pinchos con vegetales frescos y salsa casera.',
       'rating': 4.8,
       'tiempo': '30min',
       'favorito': true,
@@ -32,8 +31,7 @@ class _IaRecetasPageState extends State<IaRecetasPage>
     {
       'imagen': 'assets/images/2im.png',
       'titulo': 'Nut brownie (1 porción)',
-      'descripcion':
-          'Postre suave de chocolate con trozos de nuez tostada.',
+      'descripcion': 'Postre suave de chocolate con trozos de nuez tostada.',
       'rating': 4.6,
       'tiempo': '20min',
       'favorito': false,
@@ -41,8 +39,7 @@ class _IaRecetasPageState extends State<IaRecetasPage>
     {
       'imagen': 'assets/images/3im.png',
       'titulo': 'Oatmeal pancakes (3 porciones)',
-      'descripcion':
-          'Panqueques de avena con miel natural y fresas frescas.',
+      'descripcion': 'Panqueques de avena con miel natural y fresas frescas.',
       'rating': 4.9,
       'tiempo': '25min',
       'favorito': true,
@@ -154,14 +151,23 @@ class _IaRecetasPageState extends State<IaRecetasPage>
       ),
 
       // --- BARRA INFERIOR ---
-      bottomNavigationBar: BarraInferior(
-        selectedIndex: selectedIndex,
-        onTap: (i) {
-          setState(() {
-            selectedIndex = i;
-          });
-          // Aquí más adelante puedes agregar la navegación real
-        },
+      bottomNavigationBar: SizedBox(
+        height: 90,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: BarraInferior(
+                selectedIndex: selectedIndex,
+                onTap: (i) {
+                  setState(() => selectedIndex = i);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
