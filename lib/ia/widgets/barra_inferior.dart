@@ -13,7 +13,6 @@ class BarraInferior extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color naranja = Color(0xFFFF8C21);
-    const Color blanco = Colors.white;
 
     return Container(
       height: 70,

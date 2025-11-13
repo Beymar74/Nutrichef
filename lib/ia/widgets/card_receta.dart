@@ -6,8 +6,6 @@ class CardReceta extends StatelessWidget {
   final String descripcion;
   final double rating;
   final String tiempo;
-  final bool favorito;
-  final VoidCallback? onTapFavorito;
 
   const CardReceta({
     super.key,
@@ -16,112 +14,101 @@ class CardReceta extends StatelessWidget {
     required this.descripcion,
     required this.rating,
     required this.tiempo,
-    this.favorito = false,
-    this.onTapFavorito,
   });
 
   @override
   Widget build(BuildContext context) {
-    const Color naranja = Color(0xFFFF8C21);
-    const Color amarilloSuave = Color(0xFFFFF3E0);
-
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: naranja.withOpacity(0.3)),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 8,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Imagen con botón de favorito
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.asset(
-                  imagen,
-                  width: double.infinity,
-                  height: 160,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: onTapFavorito,
-                  child: Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.7),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      favorito ? Icons.favorite : Icons.favorite_border,
-                      color: favorito ? Colors.pinkAccent : naranja,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          // --------------------------
+          // IMAGEN
+          // --------------------------
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+            ),
+            child: Image.asset(
+              imagen,
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
           ),
 
-          // Contenido de la receta
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // --------------------------
+                // TÍTULO
+                // --------------------------
                 Text(
                   titulo,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  descripcion,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.black54,
-                    height: 1.3,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 8),
 
-                // Calificación y tiempo
+                const SizedBox(height: 4),
+
+                // --------------------------
+                // DESCRIPCIÓN
+                // --------------------------
+                Text(
+                  descripcion,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    height: 1.2,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // --------------------------
+                // RATING + TIEMPO
+                // --------------------------
                 Row(
                   children: [
-                    Icon(Icons.star, color: naranja, size: 16),
+                    const Icon(Icons.star, size: 16, color: Color(0xFFFF8C21)),
                     const SizedBox(width: 4),
                     Text(
-                      rating.toStringAsFixed(1),
+                      rating.toString(),
                       style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
                         color: Colors.black87,
                       ),
                     ),
+
                     const Spacer(),
-                    const Icon(Icons.access_time, size: 16, color: Colors.black54),
+
+                    const Icon(Icons.access_time,
+                        size: 16, color: Color(0xFFFF8C21)),
                     const SizedBox(width: 4),
                     Text(
                       tiempo,
@@ -132,10 +119,10 @@ class CardReceta extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
+                )
               ],
             ),
-          ),
+          )
         ],
       ),
     );
