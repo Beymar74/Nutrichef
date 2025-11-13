@@ -17,16 +17,18 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
   bool _mostrarInput = false;
 
   List<Map<String, String>> ingredientes = [
-    {'unidad': '100g', 'nombre': 'Harina'},
-    {'unidad': '2', 'nombre': 'Huevos'},
-    {'unidad': '200ml', 'nombre': 'Leche'},
+    {'cantidad': "100", 'unidad': 'g', 'nombre': 'Harina'},
+    {'cantidad': "2", 'unidad': 'u', 'nombre': 'Huevos'},
+    {'cantidad': "200", 'unidad': 'ml', 'nombre': 'Leche'},
   ];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     if (!_alertaMostrada) {
       _alertaMostrada = true;
+
       Future.delayed(const Duration(milliseconds: 400), () {
         showDialog(
           context: context,
@@ -40,6 +42,9 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
     }
   }
 
+  // ------------------------------------------------------------------
+  //                MOSTRAR DIALOGO ELIMINAR DESDE ABAJO
+  // ------------------------------------------------------------------
   void _mostrarDialogoEliminar(int index) {
     showModalBottomSheet(
       context: context,
@@ -56,8 +61,19 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
     );
   }
 
+  // ------------------------------------------------------------------
+  //                  VALIDAR INGREDIENTES NUEVOS
+  // ------------------------------------------------------------------
+  bool _yaExiste(String nombre) {
+    return ingredientes.any(
+      (item) => item['nombre']!.toLowerCase() == nombre.toLowerCase(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final double botonAncho = MediaQuery.of(context).size.width * 0.70;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -77,6 +93,10 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+
+      // =====================================================================
+      //                                BODY
+      // =====================================================================
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         child: Column(
@@ -94,18 +114,26 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
             ),
             const SizedBox(height: 15),
 
-            // --- Lista de ingredientes ---
+            // ------------------------------------------------------------------
+            //                LISTA DE INGREDIENTES
+            // ------------------------------------------------------------------
             Expanded(
               child: ListView.builder(
+                padding: EdgeInsets.zero,
                 itemCount: ingredientes.length,
                 itemBuilder: (context, index) {
                   final item = ingredientes[index];
+
                   return CardIngrediente(
+                    cantidad: item['cantidad']!,
                     unidad: item['unidad']!,
                     nombre: item['nombre']!,
-                    onEditar: (nuevoTexto) {
+                    onEditar:
+                        (nuevoCantidad, nuevaUnidad, nuevoNombre) {
                       setState(() {
-                        ingredientes[index]['nombre'] = nuevoTexto;
+                        ingredientes[index]['cantidad'] = nuevoCantidad;
+                        ingredientes[index]['unidad'] = nuevaUnidad;
+                        ingredientes[index]['nombre'] = nuevoNombre;
                       });
                     },
                     onEliminar: () => _mostrarDialogoEliminar(index),
@@ -114,43 +142,69 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
               ),
             ),
 
-            // --- Input para añadir ingredientes ---
-            if (_mostrarInput)
-              InputIngrediente(
-                onAgregar: (unidad, nombre) {
-                  setState(() {
-                    ingredientes.add({'unidad': unidad, 'nombre': nombre});
-                    _mostrarInput = false;
-                  });
-                },
-                onEliminar: () {
-                  setState(() {
-                    _mostrarInput = false;
-                  });
-                },
-              ),
+            const SizedBox(height: 10),
 
-            // --- Botón Añadir Ingrediente ---
-            const SizedBox(height: 15),
+            // ------------------------------------------------------------------
+            //             ANIMACIÓN DE INPUT (AÑADIR INGREDIENTE)
+            // ------------------------------------------------------------------
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _mostrarInput
+                  ? InputIngrediente(
+                      key: const ValueKey("inputIngrediente"),
+                      onAgregar: (unidad, nombre) {
+                        if (_yaExiste(nombre)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text("Este ingrediente ya existe."),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() {
+                          ingredientes.add({
+                            'cantidad': "1",
+                            'unidad': unidad,
+                            'nombre': nombre,
+                          });
+                          _mostrarInput = false;
+                        });
+                      },
+                      onEliminar: () {
+                        setState(() => _mostrarInput = false);
+                      },
+                    )
+                  : const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: 10),
+
+            // ------------------------------------------------------------------
+            //                   BOTÓN + AÑADIR INGREDIENTE
+            // ------------------------------------------------------------------
             Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() => _mostrarInput = true);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF8C21),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
+              child: SizedBox(
+                width: botonAncho,
+                child: ElevatedButton(
+                  onPressed: () => setState(() => _mostrarInput = true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF8C21),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 25, vertical: 12),
-                ),
-                child: const Text(
-                  '+ Añadir Ingrediente',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                  child: const Text(
+                    '+ Añadir Ingrediente',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -158,36 +212,42 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
 
             const SizedBox(height: 15),
 
-            // --- Botón confirmar ---
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const IaRecetasPage(),
+            // ------------------------------------------------------------------
+            //                       BOTÓN CONFIRMAR
+            // ------------------------------------------------------------------
+            Center(
+              child: SizedBox(
+                width: botonAncho,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const IaRecetasPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF8C21),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF8C21),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
                   ),
-                ),
-                child: const Text(
-                  'Confirmar',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    fontSize: 16,
+                  child: const Text(
+                    'Confirmar',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
             ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
