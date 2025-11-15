@@ -1,16 +1,17 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Api\RecetaController;
 
+// Rutas de recetas
+Route::get('/recetas', [RecetaController::class, 'index']);
+Route::get('/recetas/{id}', [RecetaController::class, 'show']);
+
+// Ruta de prueba
 Route::get('/test', function () {
     return response()->json([
-        'message' => '¡API funcionando!',
-        'database' => DB::connection()->getDatabaseName(),
-        'usuarios_count' => DB::table('users')->count()
+        'message' => 'API Nutrichef funcionando correctamente',
+        'timestamp' => now()
     ]);
 });
-
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
