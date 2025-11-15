@@ -2,171 +2,180 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // Emulador Android:    'http://10.0.2.2:8000/api'
-  // Emulador iOS:        'http://127.0.0.1:8000/api'
-  
-  static const String baseUrl = 'http://10.0.2.2:8080/api';
-
+  // URL base: apunta al backend Laravel (Docker puerto 18000)
+  static const String baseUrl = 'http://10.0.2.2:18000/api';
 
   static Future<Map<String, dynamic>> register({
-    required String nombreCompleto,
+    required String nombres,
+    required String apellidoPaterno,
+    required String apellidoMaterno,
     required String email,
     required String celular,
     required String fechaNacimiento,
     required String password,
+    required String confirmarPassword,
+    required String name, 
   }) async {
     try {
-      print('🔄 Intentando registrar usuario...');
-      print('📍 URL: $baseUrl/register');
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/register'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'nombre_completo': nombreCompleto,
-          'email': email,
-          'celular': celular,
-          'fecha_nacimiento': fechaNacimiento,
-          'password': password,
-        }),
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Tiempo de espera agotado. Verifica que Laravel esté corriendo.');
-        },
-      );
+      print('📡 Enviando solicitud de registro...');
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📦 Response: ${response.body}');
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/register'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'nombres': nombres,
+              'apellido_paterno': apellidoPaterno,
+              'apellido_materno': apellidoMaterno,
+              'telefono': celular,
+              'fecha_nacimiento': fechaNacimiento,
+              'name': name, // nombre corto tipo “kiap”
+              'email': email,
+              'password': password,
+              'password_confirmation': confirmarPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('📦 Registro -> Código: ${response.statusCode}');
+      print('📦 Registro -> Respuesta: ${response.body}');
 
       final data = jsonDecode(response.body);
-      
-      // Agregar el status code para manejar errores
-      return {
-        ...data,
-        'status_code': response.statusCode,
-      };
-      
-    } catch (e) {
-      print('❌ Error en registro: $e');
-      
-      String errorMessage = 'Error de conexión';
-      
-      if (e.toString().contains('SocketException')) {
-        errorMessage = 'No se puede conectar al servidor. Verifica:\n'
-                      '1. Laravel está corriendo (php artisan serve)\n'
-                      '2. La URL es correcta';
-      } else if (e.toString().contains('TimeoutException')) {
-        errorMessage = 'Tiempo de espera agotado';
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Usuario registrado correctamente',
+          'usuario': data['usuario'],
+          'persona': data['persona'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Error al registrar usuario',
+          'errors': data['errors'],
+        };
       }
-      
+    } catch (e) {
+      print('❌ Error de conexión en registro: $e');
       return {
         'success': false,
-        'message': errorMessage,
+        'message': 'Error al conectar con el servidor',
         'error': e.toString(),
       };
     }
   }
-
-  /// Iniciar sesión
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
     try {
-      print('🔄 Intentando iniciar sesión...');
-      print('📍 URL: $baseUrl/login');
-      
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Tiempo de espera agotado. Verifica que Laravel esté corriendo.');
-        },
-      );
+      print('🔑 Iniciando sesión...');
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📦 Response: ${response.body}');
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/login'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      print('📦 Login -> Código: ${response.statusCode}');
+      print('📦 Login -> Respuesta: ${response.body}');
 
       final data = jsonDecode(response.body);
-      
-      return {
-        ...data,
-        'status_code': response.statusCode,
-      };
-      
-    } catch (e) {
-      print('❌ Error en login: $e');
-      
-      String errorMessage = 'Error de conexión';
-      
-      if (e.toString().contains('SocketException')) {
-        errorMessage = 'No se puede conectar al servidor. Verifica:\n'
-                      '1. Laravel está corriendo (php artisan serve)\n'
-                      '2. La URL es correcta';
-      } else if (e.toString().contains('TimeoutException')) {
-        errorMessage = 'Tiempo de espera agotado';
+
+      if (response.statusCode == 200 && data['usuario'] != null) {
+        final usuario = data['usuario'];
+        final persona = usuario['persona'];
+
+        // 🧠 Si no hay 'name', lo generamos de forma segura
+        String nombreFinal = usuario['name'] ??
+            '${persona?['nombres']?.split(" ").first ?? ''}${persona?['apellido_paterno']?[0] ?? ''}'
+                .toLowerCase();
+
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Inicio de sesión exitoso',
+          'usuario': usuario,
+          'nombreUsuario': nombreFinal, // 👈 lo devolvemos al frontend
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Credenciales incorrectas',
+          'errors': data['errors'],
+        };
       }
-      
+    } catch (e) {
+      print('❌ Error de conexión en login: $e');
       return {
         'success': false,
-        'message': errorMessage,
+        'message': 'Error al conectar con el servidor',
+        'error': e.toString(),
+      };
+    }
+  }
+  static Future<Map<String, dynamic>> verificarUsuarioGoogle(String email) async {
+    try {
+      print('🔍 Verificando usuario Google con email: $email');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/verificar_usuario_google.php'),
+        body: {'email': email},
+      );
+
+      print('📦 Verificar Google -> Código: ${response.statusCode}');
+      print('📦 Verificar Google -> Respuesta: ${response.body}');
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('❌ Error al verificar usuario Google: $e');
+      return {
+        'success': false,
+        'message': 'Error al verificar usuario Google',
         'error': e.toString(),
       };
     }
   }
 
-  /// Probar conexión con el servidor
-  static Future<Map<String, dynamic>> testConnection() async {
+  static Future<Map<String, dynamic>> registrarUsuarioGoogle({
+    required String nombres,
+    required String apellidoPaterno,
+    required String email,
+    String? foto,
+  }) async {
     try {
-      print('🔄 Probando conexión con servidor...');
-      print('📍 URL: $baseUrl/test');
-      
-      final response = await http.get(
-        Uri.parse('$baseUrl/test'),
-        headers: {
-          'Accept': 'application/json',
-        },
-      ).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          throw Exception('Timeout');
+      print('🆕 Registrando usuario Google: $email');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/registrar_usuario_google.php'),
+        body: {
+          'nombres': nombres,
+          'apellido_paterno': apellidoPaterno,
+          'email': email,
+          'foto': foto ?? '',
         },
       );
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📦 Response: ${response.body}');
+      print('📦 Registro Google -> Código: ${response.statusCode}');
+      print('📦 Registro Google -> Respuesta: ${response.body}');
 
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'message': 'Conexión exitosa',
-          'data': jsonDecode(response.body),
-        };
-      } else {
-        return {
-          'success': false,
-          'message': 'Error del servidor: ${response.statusCode}',
-        };
-      }
-      
+      return jsonDecode(response.body);
     } catch (e) {
-      print('❌ Error en conexión: $e');
+      print('❌ Error al registrar usuario Google: $e');
       return {
         'success': false,
-        'message': 'No se pudo conectar al servidor',
+        'message': 'Error al registrar usuario Google',
         'error': e.toString(),
       };
     }

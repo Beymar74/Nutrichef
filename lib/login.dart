@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'registro.dart';
 import 'home.dart';
+import 'recuperar_password.dart';
 import 'services/api_service.dart';
+import 'services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -16,10 +19,7 @@ class _LoginState extends State<Login> {
   bool _ocultarPassword = true;
   bool _isLoading = false;
 
-  // ========================
-  // FUNCIONES
-  // ========================
-
+  //LOGIN NORMAL
   Future<void> _iniciarSesion() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text;
@@ -36,18 +36,13 @@ class _LoginState extends State<Login> {
 
     setState(() => _isLoading = true);
 
-    // Llamar a la API
-    final response = await ApiService.login(
-      email: email,
-      password: password,
-    );
+    final response = await ApiService.login(email: email, password: password);
 
     setState(() => _isLoading = false);
 
     if (response['success'] == true) {
-      // Obtener el nombre del usuario desde la respuesta de la API
-      String nombreUsuario = response['user']['nombre_completo'] ?? 'Usuario';
-      
+      final usuario = response['usuario'] ?? {};
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response['message']),
@@ -55,11 +50,8 @@ class _LoginState extends State<Login> {
         ),
       );
 
-      // 🎉 Navegar al Home pasando el nombre del usuario
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => Home(nombreUsuario: nombreUsuario),
-        ),
+        MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,42 +63,102 @@ class _LoginState extends State<Login> {
     }
   }
 
+  // 🔹 LOGIN CON GOOGLE
+  Future<void> _loginConGoogle() async {
+    final authService = AuthService();
+    final user = await authService.signInWithGoogle();
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inicio de sesión cancelado o fallido'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final email = user.email ?? '';
+    final nombreCompleto = user.displayName ?? 'Usuario Google';
+    final foto = user.photoURL ?? '';
+
+    // 🔸 Verificar si ya existe en tu base de datos
+    final verificar = await ApiService.verificarUsuarioGoogle(email);
+
+    if (verificar['success'] == true && verificar['existe'] == true) {
+      // ✅ Usuario ya registrado → iniciar sesión
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bienvenido de nuevo 👋'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Home(
+            usuario: verificar['usuario'],
+          ),
+        ),
+      );
+    } else {
+      // 🔹 Si no existe → registrar en base de datos
+      final partesNombre = nombreCompleto.split(' ');
+      final nombres = partesNombre.isNotEmpty ? partesNombre.first : nombreCompleto;
+      final apellido = partesNombre.length > 1 ? partesNombre.last : '';
+
+      final registro = await ApiService.registrarUsuarioGoogle(
+        nombres: nombres,
+        apellidoPaterno: apellido,
+        email: email,
+        foto: foto,
+      );
+
+      if (registro['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cuenta creada con Google ✅'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => Home(
+              usuario: registro['usuario'] ??
+                  {
+                    'nombres': nombres,
+                    'email': email,
+                    'foto': foto,
+                  },
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(registro['message'] ?? 'Error al registrar usuario'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _registrarse() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const Registro()),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const Registro()));
   }
 
   void _olvidoPassword() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Recuperar contraseña'),
-        content: const Text('Se enviará un correo de recuperación'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Aceptar'),
-          ),
-        ],
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RecuperarPassword()),
     );
   }
 
-  void _loginConRedSocial(String red) {
-    print('Login con $red');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Iniciando sesión con $red...'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // ========================
-  // BUILD
-  // ========================
-
+  // 🔹 INTERFAZ
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,23 +170,12 @@ class _LoginState extends State<Login> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // LOGO
                 Image.asset(
                   'assets/images/logo.png',
                   width: 100,
                   height: 100,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.restaurant_menu,
-                      size: 80,
-                      color: Color(0xFFFF8C21),
-                    );
-                  },
                 ),
-
                 const SizedBox(height: 20),
-
-                // TÍTULO
                 const Text(
                   'Iniciar Sesión',
                   style: TextStyle(
@@ -143,7 +184,6 @@ class _LoginState extends State<Login> {
                     color: Color(0xFFFF8C21),
                   ),
                 ),
-
                 const SizedBox(height: 40),
 
                 // EMAIL
@@ -167,24 +207,11 @@ class _LoginState extends State<Login> {
                   child: TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF333333),
-                    ),
                     decoration: InputDecoration(
                       hintText: 'ejemplo@ejemplocorreo.com',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
+                          horizontal: 20, vertical: 16),
                     ),
                   ),
                 ),
@@ -212,23 +239,15 @@ class _LoginState extends State<Login> {
                   child: TextField(
                     controller: _passwordController,
                     obscureText: _ocultarPassword,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF333333),
-                    ),
                     decoration: InputDecoration(
                       hintText: '••••••••',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      border: InputBorder.none,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _ocultarPassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: const Color(0xFF666666),
-                          size: 22,
+                          color: Colors.grey[700],
                         ),
                         onPressed: () {
                           setState(() {
@@ -236,21 +255,15 @@ class _LoginState extends State<Login> {
                           });
                         },
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
+                          horizontal: 20, vertical: 16),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 35),
 
-                // BOTÓN INICIAR SESIÓN
+                // BOTÓN LOGIN
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -258,28 +271,17 @@ class _LoginState extends State<Login> {
                     onPressed: _isLoading ? null : _iniciarSesion,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF8C21),
-                      foregroundColor: Colors.white,
-                      elevation: 3,
-                      shadowColor: const Color(0xFFFF8C21).withOpacity(0.4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
+                        ? const CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2)
                         : const Text(
                             'Iniciar Sesión',
                             style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white,),
                           ),
                   ),
                 ),
@@ -294,9 +296,6 @@ class _LoginState extends State<Login> {
                     onPressed: _registrarse,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFF8C21),
-                      foregroundColor: Colors.white,
-                      elevation: 3,
-                      shadowColor: const Color(0xFFFF8C21).withOpacity(0.4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -304,16 +303,14 @@ class _LoginState extends State<Login> {
                     child: const Text(
                       'Registrarse',
                       style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white,),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 25),
 
-                // OLVIDÉ CONTRASEÑA
+                // ENLACE OLVIDASTE CONTRASEÑA
                 TextButton(
                   onPressed: _olvidoPassword,
                   child: const Text(
@@ -328,7 +325,7 @@ class _LoginState extends State<Login> {
 
                 const SizedBox(height: 15),
 
-                // DIVIDER
+                // DIVISOR
                 Row(
                   children: [
                     Expanded(child: Divider(color: Colors.grey[400])),
@@ -336,10 +333,7 @@ class _LoginState extends State<Login> {
                       padding: EdgeInsets.symmetric(horizontal: 15),
                       child: Text(
                         'O',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     ),
                     Expanded(child: Divider(color: Colors.grey[400])),
@@ -352,8 +346,8 @@ class _LoginState extends State<Login> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _loginConRedSocial('Google'),
+                  child: OutlinedButton(
+                    onPressed: _loginConGoogle,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
                       side: BorderSide(color: Colors.grey[300]!, width: 1.5),
@@ -361,59 +355,32 @@ class _LoginState extends State<Login> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    icon: const Icon(Icons.g_mobiledata, size: 28),
-                    label: const Text(
-                      'Continuar con Google',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // BOTÓN FACEBOOK
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _loginConRedSocial('Facebook'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black87,
-                      side: BorderSide(color: Colors.grey[300]!, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.facebook,
-                      size: 24,
-                      color: Color(0xFF4267B2),
-                    ),
-                    label: const Text(
-                      'Continuar con Facebook',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset('assets/images/googlelogo.png',
+                            height: 24, width: 24),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Continuar con Google',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 25),
 
-                // TEXTO INFERIOR
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       '¿No tienes ninguna cuenta? ',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                     ),
                     GestureDetector(
                       onTap: _registrarse,

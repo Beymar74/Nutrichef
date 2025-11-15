@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'verificacion_codigo.dart';
 
 class RecuperarPassword extends StatefulWidget {
   const RecuperarPassword({super.key});
@@ -9,9 +12,10 @@ class RecuperarPassword extends StatefulWidget {
 
 class _RecuperarPasswordState extends State<RecuperarPassword> {
   final TextEditingController _emailController = TextEditingController();
+  bool _cargando = false;
 
-  void _enviarCodigo() {
-    String email = _emailController.text;
+  Future<void> _enviarCodigo() async {
+    String email = _emailController.text.trim();
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -23,43 +27,88 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
       return;
     }
 
-    // Aquí iría la lógica para enviar el código
-    print('Enviando código a: $email');
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Código de verificación enviado'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    setState(() {
+      _cargando = true;
+    });
+
+    try {
+      final url = Uri.parse(
+        "http://10.0.2.2:18000/api/recuperar-password/enviar-codigo",
+      );
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Accept": "application/json",
+        },
+        body: {
+          'email': email,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Código enviado a tu correo'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificacionCodigo(email: email),
+          ),
+        );
+      } else {
+        final data = jsonDecode(response.body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Error al enviar código'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error de conexión: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    setState(() {
+      _cargando = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.black87,
-          ),
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
       ),
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 35),
+
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
 
-              // TÍTULO
               const Text(
                 '¿Has Olvidado Tu Contraseña?',
                 style: TextStyle(
@@ -71,7 +120,6 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
 
               const SizedBox(height: 30),
 
-              // SUBTÍTULO
               const Text(
                 '¡Hola De Nuevo!',
                 style: TextStyle(
@@ -83,7 +131,6 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
 
               const SizedBox(height: 15),
 
-              // DESCRIPCIÓN
               Text(
                 'Ingresa tu correo electrónico. Te enviaremos un código de verificación para que puedas poner tu nueva contraseña.',
                 style: TextStyle(
@@ -95,7 +142,6 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
 
               const SizedBox(height: 35),
 
-              // LABEL EMAIL
               const Text(
                 'Email',
                 style: TextStyle(
@@ -107,7 +153,6 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
 
               const SizedBox(height: 8),
 
-              // CAMPO EMAIL
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFD54F),
@@ -139,13 +184,11 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
               ),
 
               const Spacer(),
-
-              // BOTÓN CONTINUAR
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _enviarCodigo,
+                  onPressed: _cargando ? null : _enviarCodigo,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF8C21),
                     foregroundColor: Colors.white,
@@ -155,13 +198,15 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  child: const Text(
-                    'Continuar',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _cargando
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Continuar',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 

@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "318113582455",
+    "project_id": "nutrichef-406c9",
+    "storage_bucket": "nutrichef-406c9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318113582455:android:383ed6a7b3ce4854756572",
+        "android_client_info": {
+          "package_name": "com.nutrichef.myapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "318113582455-ah315ib6h8v5mg9fndmg5dqkhsh2nvfs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.nutrichef.myapp",
+            "certificate_hash": "53dc69cd7b07f10fc17fdb735106028a2507b1de"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCI6jvQxCzR7act4CFDzZ5l260Yh01_CyI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
