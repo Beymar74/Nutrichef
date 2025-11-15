@@ -10,239 +10,179 @@ class Registro extends StatefulWidget {
 }
 
 class _RegistroState extends State<Registro> {
-  final TextEditingController _nombreCompletoController = TextEditingController();
+  final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _apellidoPaternoController = TextEditingController();
+  final TextEditingController _apellidoMaternoController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _celularController = TextEditingController();
   final TextEditingController _fechaNacimientoController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmarPasswordController = TextEditingController();
-  
+
   bool _ocultarPassword = true;
   bool _ocultarConfirmarPassword = true;
   bool _aceptaTerminos = false;
   bool _isLoading = false;
 
   Future<void> _registrarUsuario() async {
-    String nombre = _nombreCompletoController.text.trim();
+    String nombre = _nombreController.text.trim();
+    String apellidoPaterno = _apellidoPaternoController.text.trim();
+    String apellidoMaterno = _apellidoMaternoController.text.trim();
     String email = _emailController.text.trim();
     String celular = _celularController.text.trim();
     String fechaNacimiento = _fechaNacimientoController.text.trim();
     String password = _passwordController.text;
     String confirmarPassword = _confirmarPasswordController.text;
 
-    // Validaciones
-    if (nombre.isEmpty || email.isEmpty || celular.isEmpty || 
-        fechaNacimiento.isEmpty || password.isEmpty || confirmarPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (nombre.isEmpty ||
+        apellidoPaterno.isEmpty ||
+        email.isEmpty ||
+        celular.isEmpty ||
+        fechaNacimiento.isEmpty ||
+        password.isEmpty ||
+        confirmarPassword.isEmpty) {
+      _mensajeError('Por favor completa todos los campos');
       return;
     }
 
     if (password != confirmarPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Las contraseñas no coinciden'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mensajeError('Las contraseñas no coinciden');
       return;
     }
 
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La contraseña debe tener al menos 6 caracteres'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mensajeError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     if (!_aceptaTerminos) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes aceptar los términos y condiciones'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _mensajeError('Debes aceptar los términos y condiciones');
       return;
     }
 
-    // Convertir fecha de DD / MM / AAAA a AAAA-MM-DD para Laravel
     String fechaFormateada;
     try {
       List<String> partes = fechaNacimiento.replaceAll(' ', '').split('/');
-      if (partes.length == 3) {
-        fechaFormateada = '${partes[2]}-${partes[1]}-${partes[0]}';
-      } else {
-        throw Exception('Formato de fecha inválido');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Formato de fecha inválido'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      fechaFormateada = '${partes[2]}-${partes[1]}-${partes[0]}';
+    } catch (_) {
+      _mensajeError('Formato de fecha inválido');
       return;
     }
 
+    String nameCorto = _generarNombreCorto(nombre, apellidoPaterno);
+
     setState(() => _isLoading = true);
 
-    // Llamar a la API
     final response = await ApiService.register(
-      nombreCompleto: nombre,
+      nombres: nombre,
+      apellidoPaterno: apellidoPaterno,
+      apellidoMaterno: apellidoMaterno,
       email: email,
       celular: celular,
       fechaNacimiento: fechaFormateada,
       password: password,
+      confirmarPassword: confirmarPassword,
+      name: nameCorto,
     );
 
     setState(() => _isLoading = false);
 
-    if (response['success'] == true) {
-      // Mostrar diálogo de éxito
-      _mostrarDialogoExito(nombre);
+    if (response['success'] == true ||
+        response['message'] == 'Usuario registrado correctamente') {
+      _mostrarDialogoExito(nameCorto);
     } else {
       String errorMessage = response['message'] ?? 'Error al registrar';
-      
-      // Mostrar errores de validación si existen
       if (response['errors'] != null) {
         final errors = response['errors'] as Map<String, dynamic>;
         errorMessage = errors.values.first[0];
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      _mensajeError(errorMessage);
     }
   }
 
+  String _generarNombreCorto(String nombres, String apellidoPaterno) {
+    final partes = nombres.split(' ');
+    final primera = partes.first.toLowerCase();
+    final letraApellido =
+        apellidoPaterno.isNotEmpty ? apellidoPaterno[0].toLowerCase() : '';
+    return (primera.length >= 3 ? primera.substring(0, 3) : primera) +
+        letraApellido;
+  }
+
+  void _mensajeError(String texto) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto), backgroundColor: Colors.red),
+    );
+  }
   void _mostrarDialogoExito(String nombreUsuario) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 35),
+          decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 35),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Título
-                const Text(
-                  '¡Registro\nExitoso!',
-                  textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '¡Registro Exitoso!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFF8C21),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const CircleAvatar(
+                radius: 60,
+                backgroundColor: Color(0xFFFFD54F),
+                child: Icon(Icons.check, color: Colors.white, size: 60),
+              ),
+              const SizedBox(height: 30),
+              Text(
+                'Bienvenido $nombreUsuario!',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Tu cuenta está lista.\nComienza a descubrir recetas deliciosas.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 25),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF8C21),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const Login()),
+                  );
+                },
+                child: const Text(
+                  'Continuar',
                   style: TextStyle(
-                    fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFFF8C21),
-                    height: 1.2,
+                    fontSize: 16,
                   ),
                 ),
-
-                const SizedBox(height: 30),
-
-                // Imagen de perfil con círculo amarillo (más grande y ajustada)
-                Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD54F),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/profile2.png',
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.person,
-                          size: 70,
-                          color: Color(0xFFFF8C21),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Mensaje de bienvenida
-                const Text(
-                  '¡Bienvenido/a a NutriChef!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Text(
-                  'Tu cuenta está lista.\nComienza a descubrir recetas deliciosas y saludables.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
-                ),
-
-                const SizedBox(height: 35),
-
-                // Botón continuar
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Cerrar diálogo
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const Login()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF8C21),
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Continuar',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -258,8 +198,10 @@ class _RegistroState extends State<Registro> {
             colorScheme: const ColorScheme.light(
               primary: Color(0xFFFF8C21),
               onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
+              onSurface: Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Color(0xFFFF8C21)),
             ),
           ),
           child: child!,
@@ -269,10 +211,46 @@ class _RegistroState extends State<Registro> {
 
     if (picked != null) {
       setState(() {
-        _fechaNacimientoController.text = 
+        _fechaNacimientoController.text =
             '${picked.day.toString().padLeft(2, '0')} / ${picked.month.toString().padLeft(2, '0')} / ${picked.year}';
       });
     }
+  }
+
+  Widget _campo(String label, TextEditingController controller,
+      {bool readOnly = false,
+      bool obscure = false,
+      VoidCallback? onTap,
+      Widget? suffixIcon,
+      TextInputType? tipo}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFD54F),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscure,
+            readOnly: readOnly,
+            onTap: onTap,
+            keyboardType: tipo,
+            decoration: InputDecoration(
+              hintText: label,
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              suffixIcon: suffixIcon,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
   }
 
   @override
@@ -285,457 +263,91 @@ class _RegistroState extends State<Registro> {
           child: Column(
             children: [
               const SizedBox(height: 20),
-
-              // TÍTULO
               const Text(
-                'Regístrate A\nNutrichef',
-                textAlign: TextAlign.center,
+                'Regístrate a NutriChef',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFFFF8C21),
-                  height: 1.3,
                 ),
               ),
-
-              const SizedBox(height: 35),
-
-              // LABEL NOMBRE COMPLETO
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Nombre Completo',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+              const SizedBox(height: 30),
+              _campo('Nombres', _nombreController),
+              _campo('Apellido Paterno', _apellidoPaternoController),
+              _campo('Apellido Materno', _apellidoMaternoController),
+              _campo('Email', _emailController,
+                  tipo: TextInputType.emailAddress),
+              _campo('Número Celular', _celularController,
+                  tipo: TextInputType.phone),
+              _campo('Fecha de Nacimiento', _fechaNacimientoController,
+                  readOnly: true, onTap: _seleccionarFecha),
+              _campo(
+                'Contraseña',
+                _passwordController,
+                obscure: _ocultarPassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _ocultarPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                   ),
+                  onPressed: () =>
+                      setState(() => _ocultarPassword = !_ocultarPassword),
                 ),
               ),
-
-              const SizedBox(height: 8),
-
-              // CAMPO NOMBRE COMPLETO
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _nombreCompletoController,
-                  enabled: !_isLoading,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
+              _campo(
+                'Confirmar Contraseña',
+                _confirmarPasswordController,
+                obscure: _ocultarConfirmarPassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _ocultarConfirmarPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                   ),
-                  decoration: InputDecoration(
-                    hintText: 'Nombre completo',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
+                  onPressed: () => setState(() =>
+                      _ocultarConfirmarPassword = !_ocultarConfirmarPassword),
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // LABEL EMAIL
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Email',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // CAMPO EMAIL
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _emailController,
-                  enabled: !_isLoading,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'ejemplo@ejemplocorreo.com',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // LABEL NUMERO CELULAR
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Numero Celular',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // CAMPO CELULAR
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _celularController,
-                  enabled: !_isLoading,
-                  keyboardType: TextInputType.phone,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '+591 12345678',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // LABEL FECHA DE NACIMIENTO
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Fecha De Nacimiento',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // CAMPO FECHA DE NACIMIENTO
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _fechaNacimientoController,
-                  readOnly: true,
-                  enabled: !_isLoading,
-                  onTap: _seleccionarFecha,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'DD / MM / AAAA',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // LABEL CONTRASEÑA
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Contraseña',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // CAMPO PASSWORD
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _passwordController,
-                  enabled: !_isLoading,
-                  obscureText: _ocultarPassword,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '••••••••',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _ocultarPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: const Color(0xFF666666),
-                        size: 22,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _ocultarPassword = !_ocultarPassword;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // LABEL CONFIRMAR CONTRASEÑA
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Confirmar Contraseña',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // CAMPO CONFIRMAR PASSWORD
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD54F),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _confirmarPasswordController,
-                  enabled: !_isLoading,
-                  obscureText: _ocultarConfirmarPassword,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '••••••••',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _ocultarConfirmarPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: const Color(0xFF666666),
-                        size: 22,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _ocultarConfirmarPassword = !_ocultarConfirmarPassword;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // CHECKBOX TÉRMINOS
               Row(
                 children: [
                   Checkbox(
                     value: _aceptaTerminos,
-                    onChanged: _isLoading ? null : (value) {
-                      setState(() {
-                        _aceptaTerminos = value ?? false;
-                      });
-                    },
+                    onChanged: (v) =>
+                        setState(() => _aceptaTerminos = v ?? false),
                     activeColor: const Color(0xFFFF8C21),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
                   ),
                   Expanded(
                     child: Text(
-                      'Al continuar, aceptas los Términos de uso y la Política de privacidad.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[800],
-                        height: 1.4,
-                      ),
+                      'Aceptas los Términos de uso y Política de privacidad.',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 12),
                     ),
-                  ),
+                  )
                 ],
               ),
-
-              const SizedBox(height: 25),
-
-              // BOTÓN REGISTRARME
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _registrarUsuario,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF8C21),
-                    foregroundColor: Colors.white,
-                    elevation: 3,
-                    shadowColor: const Color(0xFFFF8C21).withOpacity(0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    disabledBackgroundColor: const Color(0xFFFF8C21).withOpacity(0.6),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'Registrarme!',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-
               const SizedBox(height: 20),
-
-              // TEXTO INFERIOR
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '¿Ya tienes una cuenta en Nutrichef? ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _isLoading ? null : () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const Login()),
-                      );
-                    },
-                    child: Text(
-                      'Inicia Sesión',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _isLoading 
-                            ? const Color(0xFFFF8C21).withOpacity(0.5)
-                            : const Color(0xFFFF8C21),
-                        fontWeight: FontWeight.bold,
+              ElevatedButton(
+                onPressed: _isLoading ? null : _registrarUsuario,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF8C21),
+                  foregroundColor: Colors.white, // ✅ ahora el texto es visible
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 60, vertical: 14),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'Registrarme',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                    ),
-                  ),
-                ],
               ),
-
-              const SizedBox(height: 30),
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _nombreCompletoController.dispose();
-    _emailController.dispose();
-    _celularController.dispose();
-    _fechaNacimientoController.dispose();
-    _passwordController.dispose();
-    _confirmarPasswordController.dispose();
-    super.dispose();
   }
 }
