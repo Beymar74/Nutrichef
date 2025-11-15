@@ -5,9 +5,9 @@ import 'services/receta_service.dart';
 import 'models/receta_model.dart';
 
 class Home extends StatefulWidget {
-  final String nombreUsuario;
+  final Map<String, dynamic> usuario;
 
-  const Home({super.key, required this.nombreUsuario});
+  const Home({super.key, required this.usuario});
 
   @override
   State<Home> createState() => _HomeState();
@@ -153,7 +153,7 @@ class _HomeState extends State<Home> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Hola! ${widget.nombreUsuario}',
+                                  'Hola! ${widget.usuario['name'] ?? 'Usuario'}',
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
