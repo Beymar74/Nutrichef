@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'inicio.dart';
+import 'package:myapp/chef/home_chef.dart'; // ajusta a tu pubspec.yaml
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +33,7 @@ class NutriChefApp extends StatelessWidget {
         Locale('es', 'ES'),
         Locale('en', 'US'),
       ],
+      // <- IMPORTANTE: nombres correctos y exactos
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -40,14 +41,18 @@ class NutriChefApp extends StatelessWidget {
       ],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF8C21),
-          primary: const Color(0xFFFF8C21),
-          secondary: const Color(0xFFFFD54F),
+          seedColor: Color(0xFFFF8C21),
+          primary: Color(0xFFFF8C21),
+          secondary: Color(0xFFFFD54F),
         ),
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const Inicio(),
+
+      home: const HomeChef(
+        nombreChef: "Chef Beymar",
+        chefId: 1,
+      ),
     );
   }
 }
