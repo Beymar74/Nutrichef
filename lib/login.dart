@@ -20,48 +20,53 @@ class _LoginState extends State<Login> {
   bool _isLoading = false;
 
   //LOGIN NORMAL
-  Future<void> _iniciarSesion() async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text;
+Future<void> _iniciarSesion() async {
+  String email = _emailController.text.trim();
+  String password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    final response = await ApiService.login(email: email, password: password);
-
-    setState(() => _isLoading = false);
-
-    if (response['success'] == true) {
-      final usuario = response['usuario'] ?? {};
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response['message']),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response['message'] ?? 'Error al iniciar sesión'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor completa todos los campos'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
   }
+
+  setState(() => _isLoading = true);
+
+  final response = await ApiService.login(email: email, password: password);
+
+  setState(() => _isLoading = false);
+
+  if (response['success'] == true) {
+    final usuario = response['usuario'] ?? {};
+    final token = response['token'] ?? '';
+
+    if (token.isNotEmpty) {
+      usuario['token'] = token; // 🟢 Guardamos el token en usuario
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response['message'] ?? 'Inicio de sesión exitoso'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response['message'] ?? 'Error al iniciar sesión'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
 
   // 🔹 LOGIN CON GOOGLE
   Future<void> _loginConGoogle() async {

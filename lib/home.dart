@@ -3,6 +3,9 @@ import 'recetas.dart';
 import 'detalles-receta.dart';
 import 'services/receta_service.dart';
 import 'models/receta_model.dart';
+import 'perfil_completar.dart';
+import 'perfil_view.dart';
+
 
 class Home extends StatefulWidget {
   final Map<String, dynamic> usuario;
@@ -85,6 +88,29 @@ class _HomeState extends State<Home> {
       }
     });
   }
+void _abrirPerfil() {
+  final u = widget.usuario;
+  final p = u["persona"];
+
+  bool perfilIncompleto =
+      (u["descripcion_perfil"] == null || u["descripcion_perfil"].toString().isEmpty) ||
+      (p == null) ||
+      (p["altura"] == null || p["altura"].toString().isEmpty) ||
+      (p["peso"] == null || p["peso"].toString().isEmpty);
+
+  if (perfilIncompleto) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CompletarPerfil(usuario: widget.usuario),
+      ),
+    );
+  } else {
+    setState(() => _selectedIndex = 3);
+  }
+}
+
+
 
   void _navigateToRecetas() {
     Navigator.push(
@@ -95,295 +121,296 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void _onNavBarTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+void _onNavBarTap(int index) {
+  switch (index) {
+    case 0:
+      setState(() => _selectedIndex = 0);
+      break;
 
-    switch (index) {
-      case 0:
-        // Ya estamos en Home
-        break;
-      case 1:
-        // Community (por implementar)
-        break;
-      case 2:
-        // Navegar a Recetas
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const RecetasModaScreen(),
-          ),
-        );
-        break;
-      case 3:
-        // Perfil (por implementar)
-        break;
-    }
+    case 1:
+      break;
+
+    case 2:
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RecetasModaScreen()),
+      );
+      break;
+
+    case 3:
+      _abrirPerfil();
+      break;
   }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFFFF8C21),
-                ),
-              )
-            : RefreshIndicator(
-                onRefresh: _cargarRecetas,
-                color: const Color(0xFFFF8C21),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
 
-                        // HEADER CON SALUDO Y MONEDAS
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Hola! ${widget.usuario['name'] ?? 'Usuario'}',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFFEC888D),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Que te gustaría cocinar hoy',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFD54F),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.star,
-                                        color: Color(0xFFFF8C21),
-                                        size: 20,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '0',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFD54F),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    children: [
-                                      Text(
-                                        '🪙',
-                                        style: TextStyle(fontSize: 16),
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '0',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.white,
 
-                        const SizedBox(height: 25),
+    body: SafeArea(
+      child: _selectedIndex == 3
+          ? PerfilView(usuario: widget.usuario)   // ⬅ PERFIL con barra
+          : _buildHomeContent(),                 // ⬅ HOME completo
+    ),
 
-                        // CHIPS DE CATEGORÍAS - AHORA FUNCIONALES
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildCategoriaChip('Todas', _categoriaSeleccionada == 'Todas'),
-                              const SizedBox(width: 10),
-                              _buildCategoriaChip('Desayuno', _categoriaSeleccionada == 'Desayuno'),
-                              const SizedBox(width: 10),
-                              _buildCategoriaChip('Almuerzo', _categoriaSeleccionada == 'Almuerzo'),
-                              const SizedBox(width: 10),
-                              _buildCategoriaChip('Cena', _categoriaSeleccionada == 'Cena'),
-                              const SizedBox(width: 10),
-                              _buildCategoriaChip('Vegano', _categoriaSeleccionada == 'Vegano'),
-                              const SizedBox(width: 10),
-                              _buildCategoriaChip('Dulce', _categoriaSeleccionada == 'Dulce'),
-                            ],
-                          ),
-                        ),
+    bottomNavigationBar: _buildBottomNavigationBar(),
+  );
+}
+Widget _buildHomeContent() {
+  return _isLoading
+      ? const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFFF8C21),
+          ),
+        )
+      : RefreshIndicator(
+          onRefresh: _cargarRecetas,
+          color: const Color(0xFFFF8C21),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
 
-                        const SizedBox(height: 15),
-
-                        // Mostrar cantidad de recetas filtradas
-                        Text(
-                          '${_recetasFiltradas.length} recetas disponibles',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        // RECETA DE MODA
-                        const Text(
-                          'Receta De Moda',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFEC888D),
-                          ),
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        // CARD RECETA DE MODA (Usando datos filtrados)
-                        if (_recetaDestacada != null)
-                          _buildRecetaDestacada(_recetaDestacada!)
-                        else
-                          _buildRecetaDestacadaPlaceholder(),
-
-                        const SizedBox(height: 25),
-
-                        // TUS RECETAS (Usando datos filtrados)
-                        if (_recetasFiltradas.length > 1)
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFF8C21),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Más Recetas',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 15),
-                                Row(
-                                  children: [
-                                    if (_recetasFiltradas.length > 1)
-                                      Expanded(
-                                        child: _buildRecetaCardFromAPI(_recetasFiltradas[1]),
-                                      ),
-                                    if (_recetasFiltradas.length > 2)
-                                      const SizedBox(width: 15),
-                                    if (_recetasFiltradas.length > 2)
-                                      Expanded(
-                                        child: _buildRecetaCardFromAPI(_recetasFiltradas[2]),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                        const SizedBox(height: 25),
-
-                        // TOP CHEF
-                        const Text(
-                          'Top Chef',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFEC888D),
-                          ),
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildChefCard('joseph.png', 'Joseph'),
-                              const SizedBox(width: 12),
-                              _buildChefCard('andrew.png', 'Andrew'),
-                              const SizedBox(width: 12),
-                              _buildChefCard('emily.png', 'Emily'),
-                              const SizedBox(width: 12),
-                              _buildChefCard('jessica.png', 'Jessica'),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 25),
-
-                        // RECETAS RECIENTES
-                        if (_recetasFiltradas.length > 3) ...[
-                          const Text(
-                            'Recetas Recientes',
-                            style: TextStyle(
-                              fontSize: 18,
+                  // HEADER CON SALUDO Y MONEDAS
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hola! ${widget.usuario['name'] ?? 'Usuario'}',
+                            style: const TextStyle(
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFFEC888D),
                             ),
                           ),
-                          const SizedBox(height: 15),
-                          ..._recetasFiltradas.skip(3).take(3).map((receta) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _buildRecetaHorizontalCard(receta),
-                              )),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Que te gustaría cocinar hoy',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                         ],
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD54F),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.star,
+                                  color: Color(0xFFFF8C21),
+                                  size: 20,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '0',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD54F),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Row(
+                              children: [
+                                Text(
+                                  '🪙',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '0',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
 
-                        const SizedBox(height: 100),
+                  const SizedBox(height: 25),
+
+                  // CHIPS DE CATEGORÍAS
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildCategoriaChip('Todas', _categoriaSeleccionada == 'Todas'),
+                        const SizedBox(width: 10),
+                        _buildCategoriaChip('Desayuno', _categoriaSeleccionada == 'Desayuno'),
+                        const SizedBox(width: 10),
+                        _buildCategoriaChip('Almuerzo', _categoriaSeleccionada == 'Almuerzo'),
+                        const SizedBox(width: 10),
+                        _buildCategoriaChip('Cena', _categoriaSeleccionada == 'Cena'),
+                        const SizedBox(width: 10),
+                        _buildCategoriaChip('Vegano', _categoriaSeleccionada == 'Vegano'),
+                        const SizedBox(width: 10),
+                        _buildCategoriaChip('Dulce', _categoriaSeleccionada == 'Dulce'),
                       ],
                     ),
                   ),
-                ),
-              ),
-      ),
 
-      // BOTTOM NAVIGATION BAR - CUSTOM
-      bottomNavigationBar: _buildBottomNavigationBar(),
-    );
-  }
+                  const SizedBox(height: 15),
+
+                  // Mostrar cantidad de recetas filtradas
+                  Text(
+                    '${_recetasFiltradas.length} recetas disponibles',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  // RECETA DE MODA
+                  const Text(
+                    'Receta De Moda',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFEC888D),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  if (_recetaDestacada != null)
+                    _buildRecetaDestacada(_recetaDestacada!)
+                  else
+                    _buildRecetaDestacadaPlaceholder(),
+
+                  const SizedBox(height: 25),
+
+                  // TUS RECETAS
+                  if (_recetasFiltradas.length > 1)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF8C21),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Más Recetas',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Row(
+                            children: [
+                              if (_recetasFiltradas.length > 1)
+                                Expanded(
+                                  child: _buildRecetaCardFromAPI(_recetasFiltradas[1]),
+                                ),
+                              if (_recetasFiltradas.length > 2)
+                                const SizedBox(width: 15),
+                              if (_recetasFiltradas.length > 2)
+                                Expanded(
+                                  child: _buildRecetaCardFromAPI(_recetasFiltradas[2]),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 25),
+
+                  // TOP CHEF
+                  const Text(
+                    'Top Chef',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFEC888D),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildChefCard('joseph.png', 'Joseph'),
+                        const SizedBox(width: 12),
+                        _buildChefCard('andrew.png', 'Andrew'),
+                        const SizedBox(width: 12),
+                        _buildChefCard('emily.png', 'Emily'),
+                        const SizedBox(width: 12),
+                        _buildChefCard('jessica.png', 'Jessica'),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  if (_recetasFiltradas.length > 3) ...[
+                    const Text(
+                      'Recetas Recientes',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFEC888D),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    ..._recetasFiltradas.skip(3).take(3).map(
+                          (receta) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildRecetaHorizontalCard(receta),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
+        );
+}
 
   Widget _buildBottomNavigationBar() {
     return Container(
