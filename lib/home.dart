@@ -4,11 +4,11 @@ import 'detalles-receta.dart';
 import 'services/receta_service.dart';
 import 'models/receta_model.dart';
 
+// Aquí debe ir solo la clase Home y sus dependencias.
+// NO debe haber class NutriChefApp ni imports a main.dart
 class Home extends StatefulWidget {
   final Map<String, dynamic> usuario;
-
   const Home({super.key, required this.usuario});
-
   @override
   State<Home> createState() => _HomeState();
 }
@@ -124,9 +124,12 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+   return Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBody: true,
+      body: Container(
+        color: const Color(0xFFF5F5F5),
+        child: SafeArea(
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(
@@ -375,23 +378,25 @@ class _HomeState extends State<Home> {
                         const SizedBox(height: 100),
                       ],
                     ),
-                  ),
-                ),
-              ),
-      ),
-
-      // BOTTOM NAVIGATION BAR - CUSTOM
-      bottomNavigationBar: _buildBottomNavigationBar(),
-    );
-  }
+            ),
+          ),
+        ),
+    ),
+    ), // Cierre del Container
+    bottomNavigationBar: _buildBottomNavigationBar(),
+  );
+}
 
   Widget _buildBottomNavigationBar() {
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF8C00), Color(0xFFFFB84D)],
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFFF8C00).withOpacity(0.9),
+            const Color(0xFFFFB84D).withOpacity(0.9),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -413,7 +418,7 @@ class _HomeState extends State<Home> {
           ),
           GestureDetector(
             onTap: () => _onNavBarTap(1),
-            child: _buildNavItem(Icons.restaurant_menu, _selectedIndex == 1),
+            child: _buildNavItem(Icons.chat_bubble_outline, _selectedIndex == 1),
           ),
           GestureDetector(
             onTap: () => _onNavBarTap(2),
