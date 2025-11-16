@@ -95,17 +95,6 @@ services:
     networks:
       - nutrichef_network
 
-  # Mailhog para emails
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: nutrichef_mail
-    restart: unless-stopped
-    ports:
-      - "11025:1025"
-      - "18025:8025"
-    networks:
-      - nutrichef_network
-
   # Elasticsearch para búsqueda
   elasticsearch:
     image: elasticsearch:8.11.0
