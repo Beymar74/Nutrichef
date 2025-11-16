@@ -1,5 +1,3 @@
-// lib/models/receta_model.dart
-
 class Receta {
   final int id;
   final String titulo;
@@ -13,8 +11,7 @@ class Receta {
   final List<Ingrediente> ingredientes;
   final List<String> dietas;
 
-  // Campos opcionales que antes simulabas en una extensión
-  final String estado; // 'PUBLICADA', 'PENDIENTE_REVISION', 'RECHAZADA', 'BORRADOR'
+  final String estado;
   final int visualizaciones;
   final double calificacion;
   final int totalComentarios;
@@ -40,7 +37,6 @@ class Receta {
   });
 
   factory Receta.fromJson(Map<String, dynamic> json) {
-    // Helper to safely parse ints/doubles
     int parseInt(dynamic v, [int fallback = 0]) {
       if (v == null) return fallback;
       if (v is int) return v;
@@ -48,7 +44,7 @@ class Receta {
       return int.tryParse(v.toString()) ?? fallback;
     }
 
-    double? parseDouble(dynamic v, [double? fallback]) {
+    double parseDouble(dynamic v, [double fallback = 0]) {
       if (v == null) return fallback;
       if (v is double) return v;
       if (v is int) return v.toDouble();
@@ -63,22 +59,30 @@ class Receta {
       preparacion: json['preparacion']?.toString() ?? '',
       porcionesEstimadas: parseInt(json['porciones_estimadas'], 1),
       imagen: json['imagen']?.toString(),
+
+      // 🔥 Backend actual NO envía estos datos → ponemos valores por defecto
       chef: json['chef']?.toString() ?? 'Chef Nutrichef',
       chefUsername: json['chef_username']?.toString() ?? '@nutrichef',
-      ingredientes: (json['ingredientes'] as List?)
-              ?.map((i) => i is Map ? Ingrediente.fromJson(Map<String, dynamic>.from(i)) : Ingrediente.fromJson({}))
-              .toList() ??
-          [],
-      dietas: (json['dietas'] as List?)?.map((d) => d.toString()).toList() ?? [],
-      estado: json['estado']?.toString() ?? json['estado_receta']?.toString() ?? 'BORRADOR',
+
+      // 🔥 Asegurado: si la API NO manda ingredientes, esto NO explota
+      ingredientes: (json['ingredientes'] is List)
+          ? (json['ingredientes'] as List)
+              .map((i) => Ingrediente.fromJson(i))
+              .toList()
+          : [],
+
+      dietas: (json['dietas'] is List)
+          ? (json['dietas'] as List).map((d) => d.toString()).toList()
+          : [],
+
+      estado: json['estado']?.toString() ?? 'PUBLICADA',
       visualizaciones: parseInt(json['visualizaciones'], 0),
-      calificacion: parseDouble(json['calificacion'], 0.0) ?? 0.0,
-      totalComentarios: parseInt(json['totalComentarios'] ?? json['comentarios_count'], 0),
-      totalFavoritos: parseInt(json['totalFavoritos'] ?? json['favoritos_count'], 0),
+      calificacion: parseDouble(json['calificacion'], 0),
+      totalComentarios: parseInt(json['totalComentarios'], 0),
+      totalFavoritos: parseInt(json['totalFavoritos'], 0),
     );
   }
 
-  /// toMap produce un Map con las keys que usa la UI
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -87,7 +91,7 @@ class Receta {
       'tiempo_preparacion': tiempoPreparacion,
       'preparacion': preparacion,
       'porciones_estimadas': porcionesEstimadas,
-      'imagen': imagen ?? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
+      'imagen': imagen,
       'chef': chef,
       'chef_username': chefUsername,
       'ingredientes': ingredientes.map((i) => i.toMap()).toList(),
@@ -112,8 +116,7 @@ class Ingrediente {
     required this.unidadMedida,
   });
 
-  factory Ingrediente.fromJson(Map<String, dynamic>? json) {
-    final data = json ?? {};
+  factory Ingrediente.fromJson(Map<String, dynamic> json) {
     double parseDouble(dynamic v, [double fallback = 0]) {
       if (v == null) return fallback;
       if (v is double) return v;
@@ -122,9 +125,9 @@ class Ingrediente {
     }
 
     return Ingrediente(
-      descripcion: data['descripcion']?.toString() ?? data['name']?.toString() ?? '',
-      cantidad: parseDouble(data['cantidad'] ?? data['amount'] ?? 0),
-      unidadMedida: data['unidad_medida']?.toString() ?? data['unidad']?.toString() ?? 'unidad',
+      descripcion: json['descripcion']?.toString() ?? '',
+      cantidad: parseDouble(json['cantidad'], 0),
+      unidadMedida: json['unidad_medida']?.toString() ?? 'unidad',
     );
   }
 

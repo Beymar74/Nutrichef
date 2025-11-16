@@ -3,6 +3,8 @@ import '../services/receta_service.dart';
 import '../models/receta_model.dart';
 import 'crear_receta.dart';
 import 'editar_receta.dart';
+import 'ver_receta_chef.dart';
+import '../screens/catalogo_recetas.dart';
 
 // Incluir una implementación simple del screen de detalles aquí para evitar
 // el error "Target of URI doesn't exist". Si luego se crea el archivo
@@ -186,16 +188,22 @@ class _HomeChefState extends State<HomeChef> {
   }
 
   void _onNavBarTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+  setState(() {
+    _selectedIndex = index;
+  });
 
-    switch (index) {
+  switch (index) {
       case 0:
-        // Ya estamos en Home
+        // Ya estamos en Home Chef
         break;
       case 1:
-        // Mis Recetas
+        // Ver todas las recetas del sistema
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const CatalogoRecetasScreen(),
+          ),
+        );
         break;
       case 2:
         // Estadísticas
@@ -299,17 +307,11 @@ class _HomeChefState extends State<HomeChef> {
       ),
 
       // FLOATING ACTION BUTTON
-      floatingActionButton: FloatingActionButton.extended(
+      
+      floatingActionButton: FloatingActionButton(
         onPressed: _navegarACrearReceta,
         backgroundColor: const Color(0xFFFF8C21),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          '',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
 
       // BOTTOM NAVIGATION BAR
@@ -351,35 +353,38 @@ class _HomeChefState extends State<HomeChef> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: [
-                  Text(
-                    '¡Hola Chef ${widget.nombreChef}!',
+              children: [
+                Flexible(
+                  child: Text(
+                    '¡Hola ${widget.nombreChef}!',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFEC888D),
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD54F),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'PRO',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD54F),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'PRO',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
               const SizedBox(height: 4),
               Text(
                 'Panel de Control de Recetas',
@@ -850,8 +855,8 @@ class _HomeChefState extends State<HomeChef> {
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DetallesRecetaScreen(
-                          receta: receta.toMap(),
+                        builder: (context) => VerRecetaChefScreen(
+                          receta: receta,
                         ),
                       ),
                     ),
@@ -933,7 +938,9 @@ class _HomeChefState extends State<HomeChef> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No tienes recetas ${_filtroActual.toLowerCase()}',
+            _filtroActual == 'Todas' 
+              ? 'No tienes recetas aún'
+              : 'No tienes recetas ${_filtroActual.toLowerCase()}',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
