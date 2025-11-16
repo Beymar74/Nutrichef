@@ -1,19 +1,19 @@
-@extends('layouts.admin')
 
-@section('titulo', 'Revisión de Receta')
 
-@section('contenido')
+<?php $__env->startSection('titulo', 'Revisión de Receta'); ?>
+
+<?php $__env->startSection('contenido'); ?>
     
     <!-- Mensaje Flash -->
-    @if(session('success'))
+    <?php if(session('success')): ?>
         <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-2 animate-pulse shadow-sm">
             <i data-lucide="check-circle" class="w-5 h-5"></i>
-            <span class="font-medium">{{ session('success') }}</span>
+            <span class="font-medium"><?php echo e(session('success')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
     <div class="mb-6">
-        <a href="{{ route('admin.recetas.index') }}" class="text-slate-500 hover:text-calabaza-600 flex items-center gap-1 text-sm font-medium mb-4 transition-colors w-fit">
+        <a href="<?php echo e(route('admin.recetas.index')); ?>" class="text-slate-500 hover:text-calabaza-600 flex items-center gap-1 text-sm font-medium mb-4 transition-colors w-fit">
             <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver al listado
         </a>
     </div>
@@ -25,10 +25,10 @@
             <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-100">
                 
                 <div class="flex justify-between items-start mb-6">
-                    <h1 class="text-3xl font-bold text-slate-900 leading-tight">{{ $receta->titulo }}</h1>
+                    <h1 class="text-3xl font-bold text-slate-900 leading-tight"><?php echo e($receta->titulo); ?></h1>
                     
                     <!-- Badge de Estado Dinámico -->
-                    @php
+                    <?php
                         $descEstado = strtoupper($receta->estado->descripcion ?? 'Borrador');
                         $claseEstado = match(true) {
                             $descEstado === 'PUBLICADA' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -36,14 +36,15 @@
                             $descEstado === 'RECHAZADA' => 'bg-red-100 text-red-700 border-red-200',
                             default => 'bg-slate-100 text-slate-700 border-slate-200'
                         };
-                    @endphp
-                    <span class="px-4 py-1.5 rounded-full text-sm font-semibold border {{ $claseEstado }} shadow-sm">
-                        {{ ucfirst(strtolower($descEstado)) }}
+                    ?>
+                    <span class="px-4 py-1.5 rounded-full text-sm font-semibold border <?php echo e($claseEstado); ?> shadow-sm">
+                        <?php echo e(ucfirst(strtolower($descEstado))); ?>
+
                     </span>
                 </div>
                 
                 <div class="bg-slate-50 border-l-4 border-calabaza-400 p-4 rounded-r-lg mb-8 italic text-slate-600">
-                    "{{ $receta->resumen }}"
+                    "<?php echo e($receta->resumen); ?>"
                 </div>
 
                 <!-- Métricas Rápidas -->
@@ -52,21 +53,21 @@
                         <div class="bg-calabaza-50 p-2 rounded-full mb-2">
                             <i data-lucide="clock" class="w-6 h-6 text-calabaza-500"></i>
                         </div>
-                        <span class="text-lg font-bold text-slate-800">{{ $receta->tiempo_preparacion }} min</span>
+                        <span class="text-lg font-bold text-slate-800"><?php echo e($receta->tiempo_preparacion); ?> min</span>
                         <span class="text-xs text-slate-500 uppercase tracking-wide">Tiempo</span>
                     </div>
                     <div class="flex flex-col items-center justify-center p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
                         <div class="bg-calabaza-50 p-2 rounded-full mb-2">
                             <i data-lucide="users" class="w-6 h-6 text-calabaza-500"></i>
                         </div>
-                        <span class="text-lg font-bold text-slate-800">{{ $receta->porciones_estimadas }}</span>
+                        <span class="text-lg font-bold text-slate-800"><?php echo e($receta->porciones_estimadas); ?></span>
                         <span class="text-xs text-slate-500 uppercase tracking-wide">Porciones</span>
                     </div>
                     <div class="flex flex-col items-center justify-center p-4 bg-white border border-slate-100 rounded-xl shadow-sm">
                         <div class="bg-calabaza-50 p-2 rounded-full mb-2">
                             <i data-lucide="flame" class="w-6 h-6 text-calabaza-500"></i>
                         </div>
-                        <span class="text-lg font-bold text-slate-800">{{ $receta->calorias ?? '---' }}</span>
+                        <span class="text-lg font-bold text-slate-800"><?php echo e($receta->calorias ?? '---'); ?></span>
                         <span class="text-xs text-slate-500 uppercase tracking-wide">Kcal</span>
                     </div>
                 </div>
@@ -78,21 +79,23 @@
                             <i data-lucide="list" class="text-calabaza-500 w-5 h-5"></i> Ingredientes
                         </h3>
                         <div class="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
-                            @forelse($receta->ingredientesReceta as $ir)
+                            <?php $__empty_1 = true; $__currentLoopData = $receta->ingredientesReceta; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $ir): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <div class="flex justify-between items-center p-3 border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
                                     <!-- Accedemos a la relación 'ingrediente' y luego a su campo 'descripcion' -->
                                     <span class="text-slate-700 font-medium">
-                                        {{ $ir->ingrediente->descripcion ?? 'Ingrediente desconocido' }}
+                                        <?php echo e($ir->ingrediente->descripcion ?? 'Ingrediente desconocido'); ?>
+
                                     </span>
                                     
                                     <span class="text-sm font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">
-                                        {{-- Muestra cantidad y unidad --}}
-                                        {{ $ir->cantidad }} {{ $ir->unidadMedida->descripcion ?? '' }}
+                                        
+                                        <?php echo e($ir->cantidad); ?> <?php echo e($ir->unidadMedida->descripcion ?? ''); ?>
+
                                     </span>
                                 </div>
-                            @empty
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <div class="p-4 text-center text-slate-500 italic">No hay ingredientes registrados.</div>
-                            @endforelse
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -102,7 +105,8 @@
                             <i data-lucide="chef-hat" class="text-calabaza-500 w-5 h-5"></i> Preparación
                         </h3>
                         <div class="prose prose-slate max-w-none text-slate-600 bg-slate-50 p-6 rounded-xl border border-slate-100">
-                            {!! nl2br(e($receta->preparacion)) !!}
+                            <?php echo nl2br(e($receta->preparacion)); ?>
+
                         </div>
                     </div>
                 </div>
@@ -116,23 +120,23 @@
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
                 <h3 class="font-bold text-xs text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Imagen Principal</h3>
                 <div class="aspect-square bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 overflow-hidden relative group border border-slate-200">
-                    @php
+                    <?php
                         $imagen = $receta->multimedia->where('tipo_archivo', 'image')->first() 
                                ?? $receta->multimedia->where('tipo_archivo', 'imagen')->first();
-                    @endphp
+                    ?>
 
-                    @if($imagen && $imagen->archivo)
-                        @if(\Illuminate\Support\Str::startsWith($imagen->archivo, 'http'))
-                            <img src="{{ $imagen->archivo }}" alt="Plato" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
-                        @else
-                            <img src="{{ asset('storage/' . $imagen->archivo) }}" alt="Plato" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
-                        @endif
-                    @else
+                    <?php if($imagen && $imagen->archivo): ?>
+                        <?php if(\Illuminate\Support\Str::startsWith($imagen->archivo, 'http')): ?>
+                            <img src="<?php echo e($imagen->archivo); ?>" alt="Plato" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                        <?php else: ?>
+                            <img src="<?php echo e(asset('storage/' . $imagen->archivo)); ?>" alt="Plato" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                        <?php endif; ?>
+                    <?php else: ?>
                         <div class="flex flex-col items-center gap-2">
                             <i data-lucide="image" class="w-12 h-12 opacity-50"></i>
                             <span class="text-xs font-medium opacity-50">Sin imagen</span>
                         </div>
-                    @endif
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -141,11 +145,12 @@
                 <h3 class="font-bold text-xs text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Autor</h3>
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-calabaza-100 flex items-center justify-center text-calabaza-700 font-bold border border-calabaza-200">
-                        {{ substr($receta->creador->name ?? 'U', 0, 1) }}
+                        <?php echo e(substr($receta->creador->name ?? 'U', 0, 1)); ?>
+
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-800">{{ $receta->creador->name ?? 'Desconocido' }}</p>
-                        <p class="text-xs text-slate-500">{{ $receta->creador->email ?? '' }}</p>
+                        <p class="text-sm font-bold text-slate-800"><?php echo e($receta->creador->name ?? 'Desconocido'); ?></p>
+                        <p class="text-xs text-slate-500"><?php echo e($receta->creador->email ?? ''); ?></p>
                     </div>
                 </div>
             </div>
@@ -158,8 +163,8 @@
                 
                 <div class="space-y-3">
                     <!-- Botón APROBAR -->
-                    <form action="{{ route('admin.recetas.approve', $receta->id) }}" method="POST">
-                        @csrf
+                    <form action="<?php echo e(route('admin.recetas.approve', $receta->id)); ?>" method="POST">
+                        <?php echo csrf_field(); ?>
                         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-500/20 transform hover:-translate-y-0.5">
                             <i data-lucide="check-circle" class="w-5 h-5"></i>
                             Aprobar y Publicar
@@ -174,8 +179,8 @@
 
                     <!-- Formulario de Rechazo (Oculto) -->
                     <div id="rejectForm" class="hidden mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 fade-in duration-200">
-                        <form action="{{ route('admin.recetas.reject', $receta->id) }}" method="POST">
-                            @csrf
+                        <form action="<?php echo e(route('admin.recetas.reject', $receta->id)); ?>" method="POST">
+                            <?php echo csrf_field(); ?>
                             <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Motivo del rechazo:</label>
                             <textarea 
                                 name="reason" 
@@ -194,4 +199,5 @@
 
         </div>
     </div>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.admin', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /var/www/resources/views/admin/recetas/show.blade.php ENDPATH**/ ?>
