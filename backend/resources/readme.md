@@ -1,5 +1,7 @@
 📘 Guía Técnica del Módulo de Administración - NutriChef
 
+abrir en http://localhost:18000/admin/recetas
+
 Este documento detalla la estructura, funcionamiento y flujo de datos del módulo de gestión de recetas en el panel administrativo de NutriChef.
 
 1. Arquitectura General (MVC)
