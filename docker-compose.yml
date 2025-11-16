@@ -20,7 +20,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Laravel API
+ # Laravel API
   laravel:
     build:
       context: .
@@ -28,9 +28,9 @@ services:
     container_name: nutrichef_api
     restart: unless-stopped
     working_dir: /var/www
-    user: "root"  # Ejecutar como root para evitar problemas de permisos en Windows
     volumes:
       - ./backend:/var/www
+      - vendor_data:/var/www/vendor  # Protege vendor/ de ser sobrescrito
     ports:
       - "18000:8000"
     depends_on:
@@ -47,10 +47,17 @@ services:
       DB_PASSWORD: nutrichef_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: null
+      CACHE_DRIVER: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_KEY: nutrichef
+      MINIO_SECRET: nutrichef123
+      MINIO_BUCKET: nutrichef
     networks:
       - nutrichef_network
-    command: sh -c "composer install --no-interaction && php artisan key:generate --force && mkdir -p storage/framework/{sessions,views,cache} storage/logs && chmod -R 777 storage bootstrap/cache && php artisan serve --host=0.0.0.0 --port=8000"
-
+    command: sh -c "php artisan key:generate --force && mkdir -p storage/framework/{sessions,views,cache} storage/logs && chmod -R 777 storage bootstrap/cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
   # Adminer con tema moderno
   adminer:
     image: adminer:latest
@@ -119,6 +126,8 @@ volumes:
   redis_data:
     driver: local
   elasticsearch_data:
+    driver: local
+  vendor_data:  # ← NUEVO
     driver: local
 
 networks:
