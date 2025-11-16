@@ -83,6 +83,8 @@ class Receta {
     );
   }
 
+  get categoria => null;
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
