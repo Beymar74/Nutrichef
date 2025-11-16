@@ -2,21 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:myapp/chef/home_chef.dart'; // ajusta a tu pubspec.yaml
+import 'home.dart'; // <-- import relativo al widget Home
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    print('Firebase inicializado correctamente');
-  } catch (e, stack) {
-    print('ERROR al inicializar Firebase: $e');
-    print('Stack trace: $stack');
-  }
-
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const NutriChefApp());
 }
 
@@ -25,34 +15,23 @@ class NutriChefApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Map<String, dynamic> usuarioInicial = {
+      'id': 1,
+      'name': 'Chef Beymar',
+    };
+
     return MaterialApp(
       title: 'Nutrichef',
       debugShowCheckedModeBanner: false,
       locale: const Locale('es', 'ES'),
-      supportedLocales: const [
-        Locale('es', 'ES'),
-        Locale('en', 'US'),
-      ],
-      // <- IMPORTANTE: nombres correctos y exactos
+      supportedLocales: const [ Locale('es','ES'), Locale('en','US') ],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(0xFFFF8C21),
-          primary: Color(0xFFFF8C21),
-          secondary: Color(0xFFFFD54F),
-        ),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-      ),
-
-      home: const HomeChef(
-        nombreChef: "Chef Beymar",
-        chefId: 1,
-      ),
+      theme: ThemeData(useMaterial3: true),
+      home: Home(usuario: usuarioInicial), // <- aquí se instancia Home
     );
   }
 }
