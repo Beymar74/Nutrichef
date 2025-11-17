@@ -6,12 +6,11 @@ import 'models/receta_model.dart';
 import 'perfil_completar.dart';
 import 'perfil_view.dart';
 
-
+// Aquí debe ir solo la clase Home y sus dependencias.
+// NO debe haber class NutriChefApp ni imports a main.dart
 class Home extends StatefulWidget {
   final Map<String, dynamic> usuario;
-
   const Home({super.key, required this.usuario});
-
   @override
   State<Home> createState() => _HomeState();
 }
@@ -88,29 +87,28 @@ class _HomeState extends State<Home> {
       }
     });
   }
-void _abrirPerfil() {
-  final u = widget.usuario;
-  final p = u["persona"];
 
-  bool perfilIncompleto =
-      (u["descripcion_perfil"] == null || u["descripcion_perfil"].toString().isEmpty) ||
-      (p == null) ||
-      (p["altura"] == null || p["altura"].toString().isEmpty) ||
-      (p["peso"] == null || p["peso"].toString().isEmpty);
+  void _abrirPerfil() {
+    final u = widget.usuario;
+    final p = u["persona"];
 
-  if (perfilIncompleto) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CompletarPerfil(usuario: widget.usuario),
-      ),
-    );
-  } else {
-    setState(() => _selectedIndex = 3);
+    bool perfilIncompleto =
+        (u["descripcion_perfil"] == null || u["descripcion_perfil"].toString().isEmpty) ||
+        (p == null) ||
+        (p["altura"] == null || p["altura"].toString().isEmpty) ||
+        (p["peso"] == null || p["peso"].toString().isEmpty);
+
+    if (perfilIncompleto) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CompletarPerfil(usuario: widget.usuario),
+        ),
+      );
+    } else {
+      setState(() => _selectedIndex = 3);
+    }
   }
-}
-
-
 
   void _navigateToRecetas() {
     Navigator.push(
@@ -121,304 +119,305 @@ void _abrirPerfil() {
     );
   }
 
-void _onNavBarTap(int index) {
-  switch (index) {
-    case 0:
-      setState(() => _selectedIndex = 0);
-      break;
+  void _onNavBarTap(int index) {
+    switch (index) {
+      case 0:
+        setState(() => _selectedIndex = 0);
+        break;
 
-    case 1:
-      break;
+      case 1:
+        break;
 
-    case 2:
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const RecetasModaScreen()),
-      );
-      break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RecetasModaScreen()),
+        );
+        break;
 
-    case 3:
-      _abrirPerfil();
-      break;
+      case 3:
+        _abrirPerfil();
+        break;
+    }
   }
-}
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: _selectedIndex == 3
+            ? PerfilView(usuario: widget.usuario)   // ⬅ PERFIL con barra
+            : _buildHomeContent(),                 // ⬅ HOME completo
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    backgroundColor: Colors.white,
+  Widget _buildHomeContent() {
+    return _isLoading
+        ? const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFFF8C21),
+            ),
+          )
+        : RefreshIndicator(
+            onRefresh: _cargarRecetas,
+            color: const Color(0xFFFF8C21),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
 
-    body: SafeArea(
-      child: _selectedIndex == 3
-          ? PerfilView(usuario: widget.usuario)   // ⬅ PERFIL con barra
-          : _buildHomeContent(),                 // ⬅ HOME completo
-    ),
-
-    bottomNavigationBar: _buildBottomNavigationBar(),
-  );
-}
-Widget _buildHomeContent() {
-  return _isLoading
-      ? const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFFF8C21),
-          ),
-        )
-      : RefreshIndicator(
-          onRefresh: _cargarRecetas,
-          color: const Color(0xFFFF8C21),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-
-                  // HEADER CON SALUDO Y MONEDAS
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hola! ${widget.usuario['name'] ?? 'Usuario'}',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFEC888D),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Que te gustaría cocinar hoy',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD54F),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(
-                                  Icons.star,
-                                  color: Color(0xFFFF8C21),
-                                  size: 20,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '0',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFD54F),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Row(
-                              children: [
-                                Text(
-                                  '🪙',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '0',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // CHIPS DE CATEGORÍAS
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
+                    // HEADER CON SALUDO Y MONEDAS
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildCategoriaChip('Todas', _categoriaSeleccionada == 'Todas'),
-                        const SizedBox(width: 10),
-                        _buildCategoriaChip('Desayuno', _categoriaSeleccionada == 'Desayuno'),
-                        const SizedBox(width: 10),
-                        _buildCategoriaChip('Almuerzo', _categoriaSeleccionada == 'Almuerzo'),
-                        const SizedBox(width: 10),
-                        _buildCategoriaChip('Cena', _categoriaSeleccionada == 'Cena'),
-                        const SizedBox(width: 10),
-                        _buildCategoriaChip('Vegano', _categoriaSeleccionada == 'Vegano'),
-                        const SizedBox(width: 10),
-                        _buildCategoriaChip('Dulce', _categoriaSeleccionada == 'Dulce'),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hola! ${widget.usuario['name'] ?? 'Usuario'}',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEC888D),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Que te gustaría cocinar hoy',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD54F),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.star,
+                                    color: Color(0xFFFF8C21),
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '0',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD54F),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Text(
+                                    '🪙',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '0',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ),
 
-                  const SizedBox(height: 15),
+                    const SizedBox(height: 25),
 
-                  // Mostrar cantidad de recetas filtradas
-                  Text(
-                    '${_recetasFiltradas.length} recetas disponibles',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  // RECETA DE MODA
-                  const Text(
-                    'Receta De Moda',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFEC888D),
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  if (_recetaDestacada != null)
-                    _buildRecetaDestacada(_recetaDestacada!)
-                  else
-                    _buildRecetaDestacadaPlaceholder(),
-
-                  const SizedBox(height: 25),
-
-                  // TUS RECETAS
-                  if (_recetasFiltradas.length > 1)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF8C21),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // CHIPS DE CATEGORÍAS
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                         children: [
-                          const Text(
-                            'Más Recetas',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 15),
-                          Row(
-                            children: [
-                              if (_recetasFiltradas.length > 1)
-                                Expanded(
-                                  child: _buildRecetaCardFromAPI(_recetasFiltradas[1]),
-                                ),
-                              if (_recetasFiltradas.length > 2)
-                                const SizedBox(width: 15),
-                              if (_recetasFiltradas.length > 2)
-                                Expanded(
-                                  child: _buildRecetaCardFromAPI(_recetasFiltradas[2]),
-                                ),
-                            ],
-                          ),
+                          _buildCategoriaChip('Todas', _categoriaSeleccionada == 'Todas'),
+                          const SizedBox(width: 10),
+                          _buildCategoriaChip('Desayuno', _categoriaSeleccionada == 'Desayuno'),
+                          const SizedBox(width: 10),
+                          _buildCategoriaChip('Almuerzo', _categoriaSeleccionada == 'Almuerzo'),
+                          const SizedBox(width: 10),
+                          _buildCategoriaChip('Cena', _categoriaSeleccionada == 'Cena'),
+                          const SizedBox(width: 10),
+                          _buildCategoriaChip('Vegano', _categoriaSeleccionada == 'Vegano'),
+                          const SizedBox(width: 10),
+                          _buildCategoriaChip('Dulce', _categoriaSeleccionada == 'Dulce'),
                         ],
                       ),
                     ),
 
-                  const SizedBox(height: 25),
+                    const SizedBox(height: 15),
 
-                  // TOP CHEF
-                  const Text(
-                    'Top Chef',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFEC888D),
+                    // Mostrar cantidad de recetas filtradas
+                    Text(
+                      '${_recetasFiltradas.length} recetas disponibles',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 15),
+                    const SizedBox(height: 15),
 
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildChefCard('joseph.png', 'Joseph'),
-                        const SizedBox(width: 12),
-                        _buildChefCard('andrew.png', 'Andrew'),
-                        const SizedBox(width: 12),
-                        _buildChefCard('emily.png', 'Emily'),
-                        const SizedBox(width: 12),
-                        _buildChefCard('jessica.png', 'Jessica'),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  if (_recetasFiltradas.length > 3) ...[
+                    // RECETA DE MODA
                     const Text(
-                      'Recetas Recientes',
+                      'Receta De Moda',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFEC888D),
                       ),
                     ),
+
                     const SizedBox(height: 15),
-                    ..._recetasFiltradas.skip(3).take(3).map(
-                          (receta) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildRecetaHorizontalCard(receta),
+
+                    if (_recetaDestacada != null)
+                      _buildRecetaDestacada(_recetaDestacada!)
+                    else
+                      _buildRecetaDestacadaPlaceholder(),
+
+                    const SizedBox(height: 25),
+
+                    // TUS RECETAS
+                    if (_recetasFiltradas.length > 1)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF8C21),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Más Recetas',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 15),
+                            Row(
+                              children: [
+                                if (_recetasFiltradas.length > 1)
+                                  Expanded(
+                                    child: _buildRecetaCardFromAPI(_recetasFiltradas[1]),
+                                  ),
+                                if (_recetasFiltradas.length > 2)
+                                  const SizedBox(width: 15),
+                                if (_recetasFiltradas.length > 2)
+                                  Expanded(
+                                    child: _buildRecetaCardFromAPI(_recetasFiltradas[2]),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 25),
+
+                    // TOP CHEF
+                    const Text(
+                      'Top Chef',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFEC888D),
                       ),
                     ),
-                  ],
 
-                  const SizedBox(height: 100),
-                ],
+                    const SizedBox(height: 15),
+
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildChefCard('joseph.png', 'Joseph'),
+                          const SizedBox(width: 12),
+                          _buildChefCard('andrew.png', 'Andrew'),
+                          const SizedBox(width: 12),
+                          _buildChefCard('emily.png', 'Emily'),
+                          const SizedBox(width: 12),
+                          _buildChefCard('jessica.png', 'Jessica'),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    if (_recetasFiltradas.length > 3) ...[
+                      const Text(
+                        'Recetas Recientes',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFEC888D),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      ..._recetasFiltradas.skip(3).take(3).map(
+                            (receta) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildRecetaHorizontalCard(receta),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-}
+          );
+  }
 
   Widget _buildBottomNavigationBar() {
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFF8C00), Color(0xFFFFB84D)],
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFFF8C00).withOpacity(0.9),
+            const Color(0xFFFFB84D).withOpacity(0.9),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -440,7 +439,7 @@ Widget _buildHomeContent() {
           ),
           GestureDetector(
             onTap: () => _onNavBarTap(1),
-            child: _buildNavItem(Icons.restaurant_menu, _selectedIndex == 1),
+            child: _buildNavItem(Icons.chat_bubble_outline, _selectedIndex == 1),
           ),
           GestureDetector(
             onTap: () => _onNavBarTap(2),
@@ -496,8 +495,6 @@ Widget _buildHomeContent() {
     );
   }
 
-  // ... (Resto de los widgets sin cambios)
-  
   Widget _buildRecetaDestacada(Receta receta) {
     return GestureDetector(
       onTap: () {

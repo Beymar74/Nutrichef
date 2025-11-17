@@ -3,13 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/receta_model.dart';
 
 class RecetaService {
-  // 🔥 Cambia esta URL según tu entorno
-  static const String baseUrl = 'http://10.0.2.2:18000/api';
-  
-  // Si estás usando emulador Android usa: 'http://10.0.2.2:18000/api'
-  // Si estás en dispositivo físico usa tu IP local: 'http://192.168.x.x:18000/api'
-
-  // Obtener todas las recetas
+  // Para dispositivo físico usa la IP de tu PC:
+  static const String baseUrl = "laip";
   Future<List<Receta>> obtenerRecetas() async {
     try {
       print('🔍 Intentando obtener recetas desde: $baseUrl/recetas');
