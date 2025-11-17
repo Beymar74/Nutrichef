@@ -118,7 +118,7 @@
                 <div class="aspect-square bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 overflow-hidden relative group border border-slate-200">
                     @php
                         $imagen = $receta->multimedia->where('tipo_archivo', 'image')->first() 
-                               ?? $receta->multimedia->where('tipo_archivo', 'imagen')->first();
+                        ?? $receta->multimedia->where('tipo_archivo', 'imagen')->first();
                     @endphp
 
                     @if($imagen && $imagen->archivo)
