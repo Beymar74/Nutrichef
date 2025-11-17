@@ -4,8 +4,6 @@ import 'detalles-receta.dart';
 import 'services/receta_service.dart';
 import 'models/receta_model.dart';
 
-// Aquí debe ir solo la clase Home y sus dependencias.
-// NO debe haber class NutriChefApp ni imports a main.dart
 class Home extends StatefulWidget {
   final Map<String, dynamic> usuario;
   const Home({super.key, required this.usuario});
@@ -473,8 +471,6 @@ class _HomeState extends State<Home> {
       ),
     );
   }
-
-  // ... (Resto de los widgets sin cambios)
   
   Widget _buildRecetaDestacada(Receta receta) {
     return GestureDetector(

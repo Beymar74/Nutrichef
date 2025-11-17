@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             RolesSeeder::class,
             DominiosSeeder::class,
             SubdominiosSeeder::class,
+            RecetasSeeder::class,
         ]);
     }
 }

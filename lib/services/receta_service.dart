@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/receta_model.dart';
 
 class RecetaService {
-  // Para dispositivo físico usa la IP de tu PC:
-  static const String baseUrl = "laip";
+  static const String baseUrl = "http://192.168.0.8:18000/api";
   Future<List<Receta>> obtenerRecetas() async {
     try {
       print('🔍 Intentando obtener recetas desde: $baseUrl/recetas');
@@ -22,18 +21,16 @@ class RecetaService {
         },
       );
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📦 Response Body: ${response.body}');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
         
-        // Ajusta según la estructura de tu API
         if (jsonResponse.containsKey('data')) {
           final List<dynamic> data = jsonResponse['data'];
           return data.map((json) => Receta.fromJson(json)).toList();
         } else {
-          // Si tu API devuelve directamente un array
           final List<dynamic> data = json.decode(response.body);
           return data.map((json) => Receta.fromJson(json)).toList();
         }
@@ -41,15 +38,14 @@ class RecetaService {
         throw Exception('Error ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('❌ Error al obtener recetas: $e');
+      print('Error al obtener recetas: $e');
       rethrow;
     }
   }
 
-  // Obtener receta por ID
   Future<Receta?> obtenerRecetaPorId(int id) async {
     try {
-      print('🔍 Obteniendo receta ID: $id');
+      print('Obteniendo receta ID: $id');
       
       final response = await http.get(
         Uri.parse('$baseUrl/recetas/$id'),
@@ -59,8 +55,8 @@ class RecetaService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📦 Response Body: ${response.body}');
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(response.body);
@@ -73,15 +69,14 @@ class RecetaService {
       }
       return null;
     } catch (e) {
-      print('❌ Error al obtener receta: $e');
+      print('Error al obtener receta: $e');
       return null;
     }
   }
 
-  // Obtener recetas por categoría/dieta
   Future<List<Receta>> obtenerRecetasPorDieta(String dieta) async {
     try {
-      print('🔍 Obteniendo recetas de dieta: $dieta');
+      print('Obteniendo recetas de dieta: $dieta');
       
       final response = await http.get(
         Uri.parse('$baseUrl/recetas?dieta=$dieta'),
@@ -104,7 +99,7 @@ class RecetaService {
       }
       return [];
     } catch (e) {
-      print('❌ Error al obtener recetas por dieta: $e');
+      print('Error al obtener recetas por dieta: $e');
       return [];
     }
   }
