@@ -11,62 +11,50 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    // Registro de usuario
+    /**
+     * 📌 REGISTRO DE USUARIO
+     */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             // Datos de persona
-            'nombres' => 'required|string|max:100',
-            'apellido_paterno' => 'required|string|max:100',
-            'apellido_materno' => 'nullable|string|max:100',
-            'telefono' => 'nullable|string|max:20',
-            'fecha_nacimiento' => 'nullable|date',
+            'nombres'           => 'required|string|max:100',
+            'apellido_paterno'  => 'required|string|max:100',
+            'apellido_materno'  => 'nullable|string|max:100',
+            'telefono'          => 'nullable|string|max:20',
+            'fecha_nacimiento'  => 'nullable|date',
 
             // Datos de usuario
-            'email' => 'required|email|unique:usuarios,email',
-            'password' => 'required|string|min:6|confirmed', // 'password_confirmation'
+            'email'             => 'required|email|unique:usuarios,email',
+            'password'          => 'required|string|min:6|confirmed', // confirmar con 'password_confirmation'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Crear registro en PERSONAS
+        // 🧍 Crear registro en tabla PERSONAS
         $persona = Persona::create([
-            'nombres' => $request->nombres,
-            'apellido_paterno' => $request->apellido_paterno,
-            'apellido_materno' => $request->apellido_materno,
-            'telefono' => $request->telefono,
-            'fecha_nacimiento' => $request->fecha_nacimiento,
+            'nombres'            => $request->nombres,
+            'apellido_paterno'   => $request->apellido_paterno,
+            'apellido_materno'   => $request->apellido_materno,
+            'telefono'           => $request->telefono,
+            'fecha_nacimiento'   => $request->fecha_nacimiento,
         ]);
 
-        // ==========================================================
-        // 🧠 Generar automáticamente un "name" corto (ej: kiap)
-        // ==========================================================
+        // 📛 Generar automáticamente username (name)
+        $primerNombre    = Str::ascii(explode(' ', trim($request->nombres))[0] ?? '');
+        $apellidoPaterno = Str::ascii(trim($request->apellido_paterno ?? ''));
+        $nameGenerado    = strtolower(substr($primerNombre, 0, 2) . substr($apellidoPaterno, 0, 2));
 
-        // Tomar solo el primer nombre (si hay más de uno)
-        $primerNombre = explode(' ', trim($request->nombres))[0] ?? '';
-        $apellidoPaterno = trim($request->apellido_paterno ?? '');
-
-        // Quitar tildes y caracteres especiales
-        $primerNombre = Str::ascii($primerNombre);
-        $apellidoPaterno = Str::ascii($apellidoPaterno);
-
-        // Obtener las 2 primeras letras de cada uno
-        $parteNombre = strtolower(substr($primerNombre, 0, 2));
-        $parteApellido = strtolower(substr($apellidoPaterno, 0, 2));
-
-        // Unirlos → ejemplo: "kiap"
-        $nameGenerado = $parteNombre . $parteApellido;
-
-        // Crear registro en USUARIOS
+        // 👤 Crear registro en tabla USUARIOS
         $usuario = Usuario::create([
-            'id_rol' => 2, // Rol por defecto: user
-            'id_persona' => $persona->id,
-            'name' => $nameGenerado,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'descripcion_perfil' => null,
+            'id_rol'            => 2, // Rol por defecto: usuario
+            'id_persona'        => $persona->id,
+            'name'              => $nameGenerado,
+            'email'             => $request->email,
+            'password'          => Hash::make($request->password),
+            'descripcion_perfil'=> null,
         ]);
 
         return response()->json([
@@ -75,11 +63,13 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // Login de usuario
+    /**
+     * 🔑 LOGIN DE USUARIO + SANCTUM TOKEN
+     */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required|string',
         ]);
 
@@ -93,9 +83,49 @@ class AuthController extends Controller
             return response()->json(['message' => 'Credenciales incorrectas'], 401);
         }
 
+        // 🔥 Generar token Sanctum
+        $token = $usuario->createToken('mobile')->plainTextToken;
+
         return response()->json([
             'message' => 'Inicio de sesión exitoso',
             'usuario' => $usuario->load('persona', 'rol'),
+            'token'   => $token
         ], 200);
+    }
+
+    /**
+     * ✏️ ACTUALIZAR PERFIL (Protegido por Sanctum)
+     */
+    public function actualizarPerfil(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'name'               => 'required|string|max:100',
+            'descripcion_perfil' => 'nullable|string',
+            'altura'             => 'required|numeric',
+            'peso'               => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // 📝 Actualizamos tabla usuarios
+        $user->update([
+            "name"               => $request->name,
+            "descripcion_perfil" => $request->descripcion_perfil,
+        ]);
+
+        // 🏋️ Actualizamos tabla personas
+        $user->persona->update([
+            "altura" => $request->altura,
+            "peso"   => $request->peso,
+        ]);
+
+        return response()->json([
+            "success"  => true,
+            "message"  => "Perfil actualizado correctamente",
+        ]);
     }
 }

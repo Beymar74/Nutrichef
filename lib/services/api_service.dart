@@ -107,7 +107,8 @@ class ApiService {
           'success': true,
           'message': data['message'] ?? 'Inicio de sesión exitoso',
           'usuario': usuario,
-          'nombreUsuario': nombreFinal, // 👈 lo devolvemos al frontend
+          'nombreUsuario': nombreFinal, 
+          'token': data['token'] ?? '',// 👈 lo devolvemos al frontend
         };
       } else {
         return {
