@@ -35,8 +35,20 @@ RUN composer install --optimize-autoloader --no-interaction --prefer-dist --no-s
 # Copiar todo el backend dentro del contenedor y asignar propietario en la copia
 COPY --chown=www-data:www-data backend/ .
 
+# Limpiar cache de bootstrap ANTES de ejecutar scripts
+RUN rm -rf bootstrap/cache/*.php
+
 # Ahora ejecutar los scripts de Composer (ahora que artisan ya existe)
-RUN composer run-script post-autoload-dump --no-interaction
+RUN composer run-script post-autoload-dump --no-interaction || true
+
+# Regenerar autoload limpio
+RUN composer dump-autoload --optimize
+
+# Limpiar configuraciones de Laravel
+RUN php artisan config:clear || true && \
+    php artisan cache:clear || true && \
+    php artisan route:clear || true && \
+    php artisan view:clear || true
 
 # Ajustar permisos adicionales si hace falta (opcional)
 RUN chmod -R 755 /var/www/storage /var/www/bootstrap/cache || true

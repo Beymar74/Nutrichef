@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Receta;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class RecetaController extends Controller
 {
@@ -24,30 +23,18 @@ class RecetaController extends Controller
         }
 
         if ($request->filled('estado')) {
-            $estadoFiltro = $request->estado;
-            $query->whereHas('estado', function($q) use ($estadoFiltro) {
-                if ($estadoFiltro === 'aprobada') {
-                    $q->where('descripcion', 'BORRADOR');
-                } elseif ($estadoFiltro === 'pendiente') {
-                    $q->whereRaw('UPPER(descripcion) = ?', ['PENDIENTE']);
-                } elseif ($estadoFiltro === 'rechazada') {
-                    $q->where('descripcion', 'OCULTA');
-                }
-            });
+             $query->where('id_estado', $request->estado);
         }
 
         $recetas = $query->orderBy('created_at', 'desc')->paginate(10);
-
-        $pendientesCount = Receta::whereHas('estado', function($q) {
-            $q->whereRaw('UPPER(descripcion) = ?', ['PENDIENTE']);
-        })->count(); 
+        $pendientesCount = Receta::where('id_estado', 2)->count(); 
 
         return view('admin.recetas.index', compact('recetas', 'pendientesCount'));
     }
 
     public function show($id)
     {
-        $receta = Receta::with(['creador', 'estado', 'tipoAlimento', 'ingredientesReceta.ingrediente', 'multimedia'])->findOrFail($id);        
+        $receta = Receta::with(['creador', 'estado', 'tipoAlimento', 'ingredientesReceta.ingrediente', 'multimedia'])->findOrFail($id);
         return view('admin.recetas.show', compact('receta'));
     }
 
@@ -86,29 +73,15 @@ class RecetaController extends Controller
     public function approve($id)
     {
         $receta = Receta::findOrFail($id);
-        
-        $estadoBorrador = DB::table('subdominios')
-            ->join('dominios', 'subdominios.id_dominio', '=', 'dominios.id')
-            ->where('dominios.descripcion', 'ESTADO')
-            ->where('subdominios.descripcion', 'BORRADOR')
-            ->value('subdominios.id');
-        
-        $receta->update(['id_estado' => $estadoBorrador]);
+        $receta->update(['id_estado' => 1]);
 
-        return redirect()->back()->with('success', 'La receta ha sido aprobada correctamente.');
+        return redirect()->back()->with('success', 'La receta ha sido aprobada y publicada.');
     }
 
-    public function reject($id)
+    public function reject(Request $request, $id)
     {
         $receta = Receta::findOrFail($id);
-        
-        $estadoOculta = DB::table('subdominios')
-            ->join('dominios', 'subdominios.id_dominio', '=', 'dominios.id')
-            ->where('dominios.descripcion', 'ESTADO')
-            ->where('subdominios.descripcion', 'OCULTA')
-            ->value('subdominios.id');
-        
-        $receta->update(['id_estado' => $estadoOculta]);
+        $receta->update(['id_estado' => 3]);
 
         return redirect()->back()->with('success', 'La receta ha sido rechazada.');
     }

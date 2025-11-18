@@ -2,11 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Database\Seeders\DominiosSeeder;
-use Database\Seeders\SubdominiosSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,10 +14,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Primero seeders base (catálogos)
         $this->call([
             RolesSeeder::class,
             DominiosSeeder::class,
             SubdominiosSeeder::class,
+        ]);
+
+        // Luego seeders dependientes
+        // (Usuarios, ingredientes, etc. si los tienes)
+        // $this->call([
+        //     UsuariosSeeder::class,
+        //     IngredientesSeeder::class,
+        // ]);
+
+        // Finalmente tus seeders de recetas
+        $this->call([
+            RecetasSeeder::class,
+            RecetasdosSeeder::class,
         ]);
     }
 }

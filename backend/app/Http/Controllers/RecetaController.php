@@ -5,17 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Receta;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // Para transacciones si fuera necesario
+use Illuminate\Support\Facades\DB;
 
 class RecetaController extends Controller
 {
-    // ... (index y show se mantienen igual, asegúrate de tenerlos) ...
     public function index(Request $request)
     {
-        // Consulta base con Eager Loading para optimizar
         $query = Receta::with(['creador', 'estado', 'tipoAlimento', 'multimedia']);
 
-        // 1. FILTRO DE BÚSQUEDA
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -26,43 +23,40 @@ class RecetaController extends Controller
             });
         }
 
-        // 2. FILTRO DE ESTADO
         if ($request->filled('estado')) {
-             $query->where('id_estado', $request->estado);
+            $estadoFiltro = $request->estado;
+            $query->whereHas('estado', function($q) use ($estadoFiltro) {
+                if ($estadoFiltro === 'aprobada') {
+                    $q->where('descripcion', 'BORRADOR');
+                } elseif ($estadoFiltro === 'pendiente') {
+                    $q->where('descripcion', 'Pendiente');
+                } elseif ($estadoFiltro === 'rechazada') {
+                    $q->where('descripcion', 'OCULTA');
+                }
+            });
         }
 
-        // Ordenar por fecha descendente y paginar
         $recetas = $query->orderBy('created_at', 'desc')->paginate(10);
 
-        // Contador de pendientes (Asegúrate que el ID 2 sea 'Pendiente' en tu BD)
-        $pendientesCount = Receta::where('id_estado', 2)->count(); 
+        $pendientesCount = Receta::whereHas('estado', function($q) {
+            $q->where('descripcion', 'Pendiente');
+        })->count(); 
 
         return view('admin.recetas.index', compact('recetas', 'pendientesCount'));
     }
 
-    /**
-     * Muestra el detalle de una receta específica.
-     */
     public function show($id)
     {
         $receta = Receta::with(['creador', 'estado', 'tipoAlimento', 'ingredientesReceta.ingrediente', 'multimedia'])->findOrFail($id);
         return view('admin.recetas.show', compact('receta'));
     }
 
-    /**
-     * Muestra el formulario de edición.
-     */
     public function edit($id)
     {
         $receta = Receta::findOrFail($id);
-        // Aquí podrías necesitar cargar listas de tipos de alimentos, estados, etc.
-        // $tipos = Subdominio::where('id_dominio', 2)->get(); 
         return view('admin.recetas.edit', compact('receta'));
     }
 
-    /**
-     * Actualiza la receta en base de datos.
-     */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -80,9 +74,6 @@ class RecetaController extends Controller
                          ->with('success', 'Receta actualizada correctamente.');
     }
 
-    /**
-     * Elimina una receta.
-     */
     public function destroy($id)
     {
         $receta = Receta::findOrFail($id);
@@ -92,25 +83,32 @@ class RecetaController extends Controller
                          ->with('success', 'La receta ha sido eliminada correctamente.');
     }
 
-    /**
-     * Aprobar Receta (Cambiar estado a PUBLICADA - ID 1).
-     */
     public function approve($id)
     {
         $receta = Receta::findOrFail($id);
-        $receta->update(['id_estado' => 1]); // 1 = Publicada
+        
+        $estadoBorrador = DB::table('subdominios')
+            ->join('dominios', 'subdominios.id_dominio', '=', 'dominios.id')
+            ->where('dominios.descripcion', 'ESTADO')
+            ->where('subdominios.descripcion', 'BORRADOR')
+            ->value('subdominios.id');
+        
+        $receta->update(['id_estado' => $estadoBorrador]);
 
-        return redirect()->back()->with('success', 'La receta ha sido aprobada y publicada.');
+        return redirect()->back()->with('success', 'La receta ha sido aprobada correctamente.');
     }
 
-    /**
-     * Rechazar Receta (Cambiar estado a RECHAZADA - ID 3).
-     */
-    public function reject(Request $request, $id)
+    public function reject($id)
     {
         $receta = Receta::findOrFail($id);
-        // Aquí podrías guardar el motivo del rechazo en otra tabla o campo si quisieras
-        $receta->update(['id_estado' => 3]); // 3 = Rechazada
+        
+        $estadoOculta = DB::table('subdominios')
+            ->join('dominios', 'subdominios.id_dominio', '=', 'dominios.id')
+            ->where('dominios.descripcion', 'ESTADO')
+            ->where('subdominios.descripcion', 'OCULTA')
+            ->value('subdominios.id');
+        
+        $receta->update(['id_estado' => $estadoOculta]);
 
         return redirect()->back()->with('success', 'La receta ha sido rechazada.');
     }
