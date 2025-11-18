@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Gestión de Recetas'); ?>
 
 <?php $__env->startSection('contenido'); ?>
@@ -20,10 +18,11 @@
         </div>
         <div class="flex gap-2">
             <!-- Filtro Rápido de Pendientes -->
-            <a href="<?php echo e(route('admin.recetas.index', ['estado' => 2])); ?>" class="bg-calabaza-50 px-4 py-2 rounded-lg border border-calabaza-200 text-calabaza-800 font-medium flex items-center gap-2 hover:bg-calabaza-100 transition-colors shadow-sm">
-                <i data-lucide="clock" class="w-4 h-4"></i>
-                <span>Pendientes: <strong><?php echo e($pendientesCount); ?></strong></span>
-            </a>
+<a href="<?php echo e(route('admin.recetas.index', ['estado' => 'pendiente'])); ?>" 
+   class="bg-calabaza-50 px-4 py-2 rounded-lg border border-calabaza-200 text-calabaza-800 font-medium flex items-center gap-2 hover:bg-calabaza-100 transition-colors shadow-sm">
+    <i data-lucide="clock" class="w-4 h-4"></i>
+    <span>Pendientes: <strong><?php echo e($pendientesCount); ?></strong></span>
+</a>
         </div>
     </div>
 
@@ -42,18 +41,24 @@
         
         <!-- Select con Auto-Submit -->
         <div class="relative min-w-[200px]">
-            <select 
-                name="estado" 
-                class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-700 focus:outline-none focus:border-calabaza-500 cursor-pointer font-medium appearance-none pr-10" 
-                onchange="this.form.submit()"
-            >
-                <option value="">Todos los estados</option>
-                <option value="2" <?php echo e(request('estado') == '2' ? 'selected' : ''); ?>>Pendiente</option>
-                <option value="1" <?php echo e(request('estado') == '1' ? 'selected' : ''); ?>>Publicada</option>
-                <option value="3" <?php echo e(request('estado') == '3' ? 'selected' : ''); ?>>Rechazada</option>
-            </select>
-            <i data-lucide="filter" class="absolute right-3 top-3 text-slate-400 w-4 h-4 pointer-events-none"></i>
-        </div>
+    <select 
+        name="estado" 
+        class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-700 focus:outline-none focus:border-calabaza-500 cursor-pointer font-medium appearance-none pr-10" 
+        onchange="this.form.submit()"
+    >
+        <option value="">Todos los estados</option>
+        <option value="aprobada" <?php echo e(request('estado') == 'aprobada' ? 'selected' : ''); ?>>
+            Aprobada
+        </option>
+        <option value="pendiente" <?php echo e(request('estado') == 'pendiente' ? 'selected' : ''); ?>>
+            Pendiente
+        </option>
+        <option value="rechazada" <?php echo e(request('estado') == 'rechazada' ? 'selected' : ''); ?>>
+            Rechazada
+        </option>
+    </select>
+    <i data-lucide="filter" class="absolute right-3 top-3 text-slate-400 w-4 h-4 pointer-events-none"></i>
+</div>
     </form>
 
     <!-- Tabla de Datos -->
@@ -111,28 +116,24 @@
                         </td>
 
                         <!-- Columna Estado -->
-                        <td class="px-6 py-4">
-                            <?php
-                                $desc = strtoupper($receta->estado->descripcion ?? 'Borrador');
-                                $clase = match(true) {
-                                    $desc === 'PUBLICADA' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                    in_array($desc, ['PENDIENTE', 'PENDIENTE_REVISION']) => 'bg-calabaza-50 text-calabaza-700 border-calabaza-200',
-                                    $desc === 'RECHAZADA' => 'bg-red-50 text-red-700 border-red-200',
-                                    default => 'bg-slate-50 text-slate-600 border-slate-200'
-                                };
-                                $dotColor = match(true) {
-                                    $desc === 'PUBLICADA' => 'bg-emerald-500',
-                                    in_array($desc, ['PENDIENTE', 'PENDIENTE_REVISION']) => 'bg-calabaza-500',
-                                    $desc === 'RECHAZADA' => 'bg-red-500',
-                                    default => 'bg-slate-400'
-                                };
-                            ?>
-                            <span class="px-3 py-1 rounded-full text-xs font-semibold border <?php echo e($clase); ?> flex items-center gap-2 w-fit whitespace-nowrap shadow-sm">
-                                <span class="w-1.5 h-1.5 rounded-full <?php echo e($dotColor); ?>"></span>
-                                <?php echo e(ucfirst(strtolower($desc))); ?>
+<td class="px-6 py-4">
+    <?php
+    $estadoDesc = strtoupper($receta->estado->descripcion ?? '');
+    
+    $configs = [
+        'BORRADOR' => ['clase' => 'bg-emerald-50 text-emerald-700 border-emerald-200', 'dot' => 'bg-emerald-500', 'texto' => 'Aprobada'],
+        'PENDIENTE' => ['clase' => 'bg-calabaza-50 text-calabaza-700 border-calabaza-200', 'dot' => 'bg-calabaza-500', 'texto' => 'Pendiente'],
+        'OCULTA' => ['clase' => 'bg-red-50 text-red-700 border-red-200', 'dot' => 'bg-red-500', 'texto' => 'Rechazada'],
+    ];
+    
+    $config = $configs[$estadoDesc] ?? ['clase' => 'bg-slate-50 text-slate-600 border-slate-200', 'dot' => 'bg-slate-400', 'texto' => ucfirst(strtolower($estadoDesc))];
+?>
+    <span class="px-3 py-1 rounded-full text-xs font-semibold border <?php echo e($config['clase']); ?> flex items-center gap-2 w-fit whitespace-nowrap shadow-sm">
+        <span class="w-1.5 h-1.5 rounded-full <?php echo e($config['dot']); ?>"></span>
+        <?php echo e($config['texto']); ?>
 
-                            </span>
-                        </td>
+    </span>
+</td>
 
                         <!-- Columna Info -->
                         <td class="px-6 py-4 text-sm text-slate-500">
