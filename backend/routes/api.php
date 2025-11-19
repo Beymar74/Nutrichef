@@ -7,6 +7,7 @@ use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\IAController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -36,3 +37,5 @@ Route::get('/recetas/{id}', [RecetaController::class, 'show']);
 Route::post('/recuperar-password/enviar-codigo',    [PasswordResetController::class, 'enviarCodigo']);
 Route::post('/recuperar-password/verificar-codigo', [PasswordResetController::class, 'verificarCodigo']);
 Route::post('/recuperar-password/cambiar',          [PasswordResetController::class, 'cambiarPassword']);
+
+Route::post('/identificar-ingredientes', [IAController::class, 'identificar']);
