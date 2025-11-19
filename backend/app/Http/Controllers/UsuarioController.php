@@ -1,38 +1,62 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
+use App\Models\Usuario;
+use App\Models\Rol;
 use Illuminate\Http\Request;
 
 class UsuarioController extends Controller
 {
-    public function actualizarPerfil(Request $request)
+    public function index(Request $request)
     {
-        $user = $request->user();  // Usuario autenticado
+        // Cargar relaciones para evitar consultas N+1
+        $query = Usuario::with(['rol', 'persona']);
 
-        $request->validate([
-            'name' => 'required|string|max:100',
-            'descripcion_perfil' => 'nullable|string',
-            'altura' => 'nullable|numeric',
-            'peso' => 'nullable|numeric',
-        ]);
+        // 1. Buscador (Nombre de usuario, Email o Nombre real)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('email', 'ilike', "%{$search}%")
+                  ->orWhereHas('persona', function($q2) use ($search) {
+                      $q2->where('nombres', 'ilike', "%{$search}%")
+                         ->orWhere('apellido_paterno', 'ilike', "%{$search}%");
+                  });
+            });
+        }
 
-        // 🟡 Actualiza la tabla usuarios
-        $user->update([
-            'name' => $request->name,
-            'descripcion_perfil' => $request->descripcion_perfil,
-        ]);
+        // 2. Filtro por Rol
+        if ($request->filled('rol')) {
+            $query->where('id_rol', $request->rol);
+        }
 
-        // 🟠 Actualiza la tabla personas
-        $user->persona?->update([
-            'altura' => $request->altura,
-            'peso' => $request->peso,
-        ]);
+        $usuarios = $query->orderBy('created_at', 'desc')->paginate(10);
+        
+        // Para el select del filtro
+        $roles = Rol::where('estado', true)->get();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Perfil actualizado correctamente',
-            'usuario' => $user->load('persona'),
-        ]);
+        return view('admin.usuarios.index', compact('usuarios', 'roles'));
+    }
+
+    public function show($id)
+    {
+        $usuario = Usuario::with(['rol', 'persona', 'recetasCreadas', 'planificadorComidas'])->findOrFail($id);
+        return view('admin.usuarios.show', compact('usuario'));
+    }
+
+    // Acción para Desactivar/Activar usuario (Ban)
+    public function toggleStatus($id)
+    {
+        $usuario = Usuario::findOrFail($id);
+        
+        // Cambia el estado: si es true pasa a false, y viceversa
+        $usuario->estado = !$usuario->estado;
+        $usuario->save();
+
+        $status = $usuario->estado ? 'activado' : 'desactivado';
+        
+        return back()->with('success', "El usuario ha sido {$status} correctamente.");
     }
 }

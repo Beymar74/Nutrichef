@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('titulo', 'Revisión de Receta')
+@section('titulo_pagina', 'Moderación de Contenido')
 
 @section('contenido')
     
@@ -9,6 +10,13 @@
         <div class="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-2 animate-pulse shadow-sm">
             <i data-lucide="check-circle" class="w-5 h-5"></i>
             <span class="font-medium">{{ session('success') }}</span>
+        </div>
+    @endif
+    
+    @if(session('error'))
+        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2 shadow-sm">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            <span class="font-medium">{{ session('error') }}</span>
         </div>
     @endif
 
@@ -27,23 +35,38 @@
                 <div class="flex justify-between items-start mb-6">
                     <h1 class="text-3xl font-bold text-slate-900 leading-tight">{{ $receta->titulo }}</h1>
                     
-                    <!-- Badge de Estado Dinámico -->
+                    <!-- Badge de Estado Dinámico (Sincronizado con Controlador) -->
                     @php
-                        $descEstado = strtoupper($receta->estado->descripcion ?? 'Borrador');
-                        $claseEstado = match(true) {
-                            $descEstado === 'PUBLICADA' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                            in_array($descEstado, ['PENDIENTE', 'PENDIENTE_REVISION']) => 'bg-calabaza-100 text-calabaza-800 border-calabaza-200',
-                            $descEstado === 'RECHAZADA' => 'bg-red-100 text-red-700 border-red-200',
+                        $descEstado = strtoupper($receta->estado->descripcion ?? 'PENDIENTE');
+                        
+                        // Lógica ajustada a tu Controlador:
+                        // BORRADOR = Aprobada (Verde)
+                        // PENDIENTE = Pendiente (Naranja)
+                        // OCULTA = Rechazada (Rojo)
+                        $claseEstado = match($descEstado) {
+                            'BORRADOR' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                            'PENDIENTE' => 'bg-calabaza-100 text-calabaza-800 border-calabaza-200',
+                            'OCULTA' => 'bg-red-100 text-red-700 border-red-200',
+                            'PUBLICADA' => 'bg-blue-100 text-blue-700 border-blue-200', // Por si acaso existe real
+                            'ELIMINADA' => 'bg-gray-100 text-gray-700 border-gray-200',
                             default => 'bg-slate-100 text-slate-700 border-slate-200'
+                        };
+
+                        // Texto legible para el humano (Mapeo visual)
+                        $textoEstado = match($descEstado) {
+                            'BORRADOR' => 'Aprobada',
+                            'PENDIENTE' => 'Pendiente',
+                            'OCULTA' => 'Rechazada',
+                            default => ucfirst(strtolower($descEstado))
                         };
                     @endphp
                     <span class="px-4 py-1.5 rounded-full text-sm font-semibold border {{ $claseEstado }} shadow-sm">
-                        {{ ucfirst(strtolower($descEstado)) }}
+                        {{ $textoEstado }}
                     </span>
                 </div>
                 
                 <div class="bg-slate-50 border-l-4 border-calabaza-400 p-4 rounded-r-lg mb-8 italic text-slate-600">
-                    "{{ $receta->resumen }}"
+                    "{{ $receta->resumen ?? 'Sin resumen disponible.' }}"
                 </div>
 
                 <!-- Métricas Rápidas -->
@@ -80,13 +103,11 @@
                         <div class="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
                             @forelse($receta->ingredientesReceta as $ir)
                                 <div class="flex justify-between items-center p-3 border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
-                                    <!-- Accedemos a la relación 'ingrediente' y luego a su campo 'descripcion' -->
                                     <span class="text-slate-700 font-medium">
                                         {{ $ir->ingrediente->descripcion ?? 'Ingrediente desconocido' }}
                                     </span>
                                     
                                     <span class="text-sm font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">
-                                        {{-- Muestra cantidad y unidad --}}
                                         {{ $ir->cantidad }} {{ $ir->unidadMedida->descripcion ?? '' }}
                                     </span>
                                 </div>
@@ -117,8 +138,7 @@
                 <h3 class="font-bold text-xs text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Imagen Principal</h3>
                 <div class="aspect-square bg-slate-100 rounded-lg flex items-center justify-center text-slate-300 overflow-hidden relative group border border-slate-200">
                     @php
-                        $imagen = $receta->multimedia->where('tipo_archivo', 'image')->first() 
-                               ?? $receta->multimedia->where('tipo_archivo', 'imagen')->first();
+                        $imagen = $receta->multimedia->first();
                     @endphp
 
                     @if($imagen && $imagen->archivo)
@@ -172,26 +192,38 @@
                         Rechazar
                     </button>
 
-                    <!-- Formulario de Rechazo (Oculto) -->
+                    <!-- Formulario de Rechazo -->
                     <div id="rejectForm" class="hidden mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2 fade-in duration-200">
                         <form action="{{ route('admin.recetas.reject', $receta->id) }}" method="POST">
                             @csrf
-                            <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Motivo del rechazo:</label>
-                            <textarea 
-                                name="reason" 
-                                rows="3" 
-                                class="w-full p-3 border border-slate-200 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 focus:outline-none resize-none bg-slate-50" 
-                                placeholder="Explica brevemente la razón..."
-                                required
-                            ></textarea>
+                            <label class="block text-xs font-bold text-slate-700 mb-2 uppercase">Confirmación:</label>
+                            <p class="text-xs text-slate-500 mb-3">Al rechazar, el estado cambiará a <strong>OCULTA</strong>.</p>
+                            
                             <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2 rounded-lg shadow-sm transition-colors">
                                 Confirmar Rechazo
                             </button>
                         </form>
                     </div>
+                    
+                    <!-- Botón ELIMINAR -->
+                     <button onclick="openModal('deleteModal', '{{ route('admin.recetas.destroy', $receta->id) }}')" 
+                            class="w-full mt-6 pt-4 border-t border-slate-100 flex justify-center items-center py-2 px-4 text-sm font-medium rounded-xl text-slate-400 hover:text-red-600 transition-colors">
+                        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                        Eliminar receta
+                    </button>
                 </div>
             </div>
 
         </div>
     </div>
+    
+    <!-- Reutilizamos el componente modal para eliminar -->
+    <x-modal-confirm 
+        id="deleteModal"
+        title="Eliminar Receta"
+        message="¿Estás seguro? Esta acción eliminará la receta de la base de datos o la marcará como eliminada."
+        action="#" 
+        confirmText="Sí, eliminar"
+    />
+
 @endsection
