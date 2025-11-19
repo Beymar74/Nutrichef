@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'asistente_cocina.dart'; 
+import 'receta_model.dart'; 
 
 class DetallesRecetaScreen extends StatelessWidget {
   final Map<String, dynamic> receta;
@@ -63,30 +65,18 @@ class DetallesRecetaScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Video/Imagen principal
             _buildMainVideo(),
-
             const SizedBox(height: 16),
-
-            // Información del chef
             _buildChefInfo(),
-
-            // Línea divisoria
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Divider(color: Color(0xFFFFD700), thickness: 2),
             ),
-
             const SizedBox(height: 16),
-
-            // Sección de Detalles
             _buildDetallesSection(),
-
             const SizedBox(height: 24),
-
-            // Sección de Ingredientes
             _buildIngredientesSection(),
-
+            _buildEmpezarAhoraButton(context),
             const SizedBox(height: 100),
           ],
         ),
@@ -95,6 +85,58 @@ class DetallesRecetaScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildEmpezarAhoraButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {
+            _navegarAAsistenteCocina(context);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFF8C00),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            elevation: 5,
+            shadowColor: const Color(0xFFFF8C00).withOpacity(0.3),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: 24,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Empezar Ahora',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navegarAAsistenteCocina(BuildContext context) {
+    final recetaObj = Receta.fromJson(receta);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AsistenteCocinaScreen(receta: recetaObj),
+      ),
+    );
+  }
   Widget _buildMainVideo() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -103,15 +145,13 @@ class DetallesRecetaScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(
           image: NetworkImage(
-            receta['image'] ??
-                'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
+            receta['imagen'] ?? 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
           ),
           fit: BoxFit.cover,
         ),
       ),
       child: Stack(
         children: [
-          // Información en la parte inferior
           Positioned(
             bottom: 0,
             left: 0,
@@ -137,7 +177,7 @@ class DetallesRecetaScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      receta['name'] ?? 'Pizza De Salami Y Queso',
+                      receta['titulo'] ?? 'Sin título',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -168,7 +208,7 @@ class DetallesRecetaScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        receta['time'] ?? '2B',
+                        '${receta['tiempo_preparacion'] ?? 'N/A'} min',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -190,7 +230,6 @@ class DetallesRecetaScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // Avatar del chef
           CircleAvatar(
             radius: 30,
             backgroundImage: NetworkImage(
@@ -198,20 +237,19 @@ class DetallesRecetaScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Información del chef
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  receta['chefUsername'] ?? '@John_Doe',
+                  receta['chef_username'] ?? '@nutrichef',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 12,
                   ),
                 ),
                 Text(
-                  receta['chef'] ?? 'John Doe-Chef',
+                  receta['chef'] ?? 'Chef Nutrichef',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -220,7 +258,6 @@ class DetallesRecetaScreen extends StatelessWidget {
               ],
             ),
           ),
-          // Botón Seguir
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             decoration: BoxDecoration(
@@ -236,7 +273,6 @@ class DetallesRecetaScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Menú de opciones
           Icon(
             Icons.more_vert,
             color: Colors.grey[600],
@@ -270,7 +306,7 @@ class DetallesRecetaScreen extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                receta['time'] ?? '30 min',
+                '${receta['tiempo_preparacion'] ?? 'N/A'} min',
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontSize: 14,
@@ -280,7 +316,7 @@ class DetallesRecetaScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Esta es una lista rápida de los ingredientes que necesitarás para esta receta de pizza de salami. Las medidas específicas y las instrucciones completas de la receta se encuentran en la tarjeta de receta imprimible a continuación.',
+            receta['resumen'] ?? 'Descripción no disponible.',
             style: TextStyle(
               color: Colors.grey[800],
               fontSize: 14,
@@ -293,17 +329,8 @@ class DetallesRecetaScreen extends StatelessWidget {
   }
 
   Widget _buildIngredientesSection() {
-    final ingredientes = [
-      '1 masa de pizza precocinada (comprada o casera)',
-      '1/2 taza de salsa de pizza',
-      '1 1/2 tazas de queso mozzarella rallado',
-      '1/2 taza de queso parmesano rallado',
-      '100g de salami en rodajas finas',
-      '1 cucharada de aceite de oliva',
-      'Orégano seco al gusto',
-      'Albahaca fresca (opcional)',
-    ];
-
+    final List<dynamic> ingredientesData = receta['ingredientes'] ?? [];
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -318,42 +345,113 @@ class DetallesRecetaScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: ingredientes.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      '• ',
-                      style: TextStyle(
-                        color: Color(0xFFFF8C00),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        ingredientes[index],
+          if (ingredientesData.isEmpty)
+            const Text(
+              'No hay ingredientes disponibles',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 14,
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: ingredientesData.length,
+              itemBuilder: (context, index) {
+                final ingrediente = ingredientesData[index];
+                final descripcion = ingrediente['descripcion']?.toString() ?? '';
+                final cantidad = ingrediente['cantidad']?.toString() ?? '';
+                final unidad = ingrediente['unidad_medida']?.toString() ?? '';
+                
+                String textoIngrediente = _formatearIngrediente(cantidad, unidad, descripcion);
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '• ',
                         style: TextStyle(
-                          color: Colors.grey[800],
-                          fontSize: 14,
-                          height: 1.4,
+                          color: Color(0xFFFF8C00),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                      Expanded(
+                        child: Text(
+                          textoIngrediente,
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
+  }
+
+  String _formatearIngrediente(String cantidad, String unidad, String descripcion) {
+    double? cantidadNum = double.tryParse(cantidad);
+    String cantidadLimpia = cantidad;
+    if (cantidadNum != null) {
+      if (cantidadNum == cantidadNum.floor()) {
+        cantidadLimpia = cantidadNum.toInt().toString();
+      } else {
+        cantidadLimpia = cantidadNum.toString();
+      }
+    }
+
+    String unidadLimpia = _obtenerUnidadApropiada(unidad, descripcion);
+
+    if (unidadLimpia.isEmpty) {
+      return '$cantidadLimpia de $descripcion';
+    } else {
+      return '$cantidadLimpia $unidadLimpia de $descripcion';
+    }
+  }
+
+  String _obtenerUnidadApropiada(String unidad, String descripcion) {
+    if (unidad != 'ELIMINADA' && unidad != 'PUBLICADA') {
+      return unidad;
+    }
+
+    String descripcionLower = descripcion.toLowerCase();
+    
+    if (descripcionLower.contains('arroz') || 
+        descripcionLower.contains('espinaca') ||
+        descripcionLower.contains('salmón') ||
+        descripcionLower.contains('pollo') ||
+        descripcionLower.contains('carne') ||
+        descripcionLower.contains('pescado')) {
+      return 'g';
+    } else if (descripcionLower.contains('aguacate') ||
+               descripcionLower.contains('tomate') ||
+               descripcionLower.contains('cebolla') ||
+               descripcionLower.contains('pimiento') ||
+               descripcionLower.contains('limón') ||
+               descripcionLower.contains('naranja')) {
+      return 'unidad';
+    } else if (descripcionLower.contains('aceite') ||
+               descripcionLower.contains('agua') ||
+               descripcionLower.contains('leche') ||
+               descripcionLower.contains('vinagre')) {
+      return 'ml';
+    } else if (descripcionLower.contains('taza') ||
+               descripcionLower.contains('cucharada') ||
+               descripcionLower.contains('cucharadita')) {
+      return '';
+    } else {
+      return 'g';
+    }
   }
 
   Widget _buildBottomNavigationBar() {
