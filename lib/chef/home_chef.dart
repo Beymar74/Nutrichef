@@ -144,7 +144,7 @@ class _HomeChefState extends State<HomeChef> {
     if (_misRecetas.isNotEmpty) {
       _calificacionPromedio = _misRecetas
         .where((r) => r.calificacion != null)
-        .fold(0.0, (sum, r) => sum + r.calificacion!) / 
+        .fold(0.0, (sum, r) => sum + r.calificacion) / 
         _misRecetas.where((r) => r.calificacion != null).length;
     }
     
