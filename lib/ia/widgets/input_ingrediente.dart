@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 class InputIngrediente extends StatefulWidget {
   final Function(String unidad, String nombre) onAgregar;
   final VoidCallback onEliminar;
+  
+  // Listas que vienen del Backend (o vacías si falló)
+  final List<String> catalogoIngredientes;
+  final List<String> catalogoUnidades;
 
   const InputIngrediente({
     super.key,
     required this.onAgregar,
     required this.onEliminar,
+    required this.catalogoIngredientes,
+    required this.catalogoUnidades,
   });
 
   @override
@@ -19,67 +25,75 @@ class _InputIngredienteState extends State<InputIngrediente> {
   final TextEditingController unidadCtrl = TextEditingController();
   final TextEditingController ingredienteCtrl = TextEditingController();
 
-  // -----------------------------
-  // LISTA BASE UNIDADES
-  // -----------------------------
-  final List<String> unidadesBase = [
-    'g',
-    'kg',
-    'ml',
-    'l',
-    'u',
-    'cda',
-    'cdta',
-    'taza',
-    'pizca',
-  ];
-
-  // -----------------------------
-  // LISTA BASE INGREDIENTES
-  // -----------------------------
-  final List<String> ingredientesBase = [
-    'Harina',
-    'Huevo',
-    'Leche',
-    'Queso',
-    'Quesillo',
-    'Tomate',
-    'Cebolla',
-    'Azúcar',
-    'Sal',
-    'Aceite',
-    'Pollo',
-    'Carne',
-    'Mantequilla',
-    'Arroz',
-    'Papa',
-  ];
-
-  List<String> unidadesFiltradas = [];
-  List<String> ingredientesFiltrados = [];
-
-  @override
-  void initState() {
-    super.initState();
-    unidadesFiltradas = unidadesBase;
-    ingredientesFiltrados = ingredientesBase;
+  // Helper para construir el campo de texto del Autocomplete con tu estilo exacto
+  Widget _buildField(
+    BuildContext context, 
+    TextEditingController controller, 
+    FocusNode focusNode, 
+    String hint,
+    {VoidCallback? onFieldSubmitted}
+  ) {
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(
+          fontFamily: "Poppins",
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        filled: true,
+        fillColor: Colors.orange.shade200,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(25),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+        color: Colors.white,
+      ),
+      onSubmitted: (_) => onFieldSubmitted?.call(),
+    );
   }
 
-  // Filtra lista según lo que escribe el usuario
-  void filtrarUnidades(String texto) {
-    setState(() {
-      unidadesFiltradas = unidadesBase
-          .where((u) => u.toLowerCase().contains(texto.toLowerCase()))
-          .toList();
-    });
-  }
-
-  void filtrarIngredientes(String texto) {
-    setState(() {
-      ingredientesFiltrados = ingredientesBase
-          .where((i) => i.toLowerCase().contains(texto.toLowerCase()))
-          .toList();
-    });
+  // Helper para construir las opciones del Autocomplete
+  Widget _buildOptionsView(
+    BuildContext context, 
+    AutocompleteOnSelected<String> onSelected, 
+    Iterable<String> options
+  ) {
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        elevation: 4.0,
+        borderRadius: BorderRadius.circular(15),
+        color: Colors.white,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: options.length,
+            itemBuilder: (BuildContext context, int index) {
+              final String option = options.elementAt(index);
+              return InkWell(
+                onTap: () => onSelected(option),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    option, 
+                    style: const TextStyle(fontFamily: 'Poppins')
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -95,7 +109,7 @@ class _InputIngredienteState extends State<InputIngrediente> {
       child: Column(
         children: [
           // ----------------------------------------------------
-          // CANTIDAD (solo números)
+          // CANTIDAD (solo números) - Sin Autocomplete
           // ----------------------------------------------------
           TextField(
             controller: cantidadCtrl,
@@ -124,109 +138,113 @@ class _InputIngredienteState extends State<InputIngrediente> {
           const SizedBox(height: 10),
 
           // ----------------------------------------------------
-          // UNIDAD (lista filtrable)
+          // UNIDAD (Autocomplete con datos reales)
           // ----------------------------------------------------
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: unidadCtrl,
-                onChanged: filtrarUnidades,
-                decoration: InputDecoration(
-                  hintText: "Unidad (g, ml, u...)",
-                  hintStyle: const TextStyle(
-                    fontFamily: "Poppins",
-                    color: Colors.white,
-                  ),
-                  filled: true,
-                  fillColor: Colors.orange.shade200,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  color: Colors.white,
-                ),
-              ),
-
-              if (unidadCtrl.text.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Column(
-                    children: unidadesFiltradas.map((u) {
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          u,
-                          style: const TextStyle(fontFamily: 'Poppins'),
-                        ),
-                        onTap: () {
-                          unidadCtrl.text = u;
-                          FocusScope.of(context).unfocus();
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') {
+                    return const Iterable<String>.empty();
+                  }
+                  return widget.catalogoUnidades.where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  });
+                },
+                onSelected: (String selection) {
+                  unidadCtrl.text = selection;
+                },
+                fieldViewBuilder: (context, textCtrl, focusNode, onSubmitted) {
+                  // Sincronizamos controladores
+                  textCtrl.text = unidadCtrl.text;
+                  // Escuchamos cambios manuales
+                  textCtrl.addListener(() {
+                    unidadCtrl.text = textCtrl.text;
+                  });
+                  
+                  return _buildField(context, textCtrl, focusNode, "Unidad (g, ml, u...)");
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                   // Ajustamos el ancho del dropdown al ancho del padre
+                   return Align(
+                     alignment: Alignment.topLeft,
+                     child: Material(
+                       elevation: 4.0,
+                       borderRadius: BorderRadius.circular(15),
+                       child: SizedBox(
+                         width: constraints.maxWidth, // Ancho exacto del input
+                         height: 200,
+                         child: ListView.builder(
+                           padding: EdgeInsets.zero,
+                           itemCount: options.length,
+                           itemBuilder: (BuildContext context, int index) {
+                             final String option = options.elementAt(index);
+                             return ListTile(
+                               title: Text(option, style: const TextStyle(fontFamily: 'Poppins')),
+                               onTap: () => onSelected(option),
+                             );
+                           },
+                         ),
+                       ),
+                     ),
+                   );
+                },
+              );
+            }
           ),
 
           const SizedBox(height: 10),
 
           // ----------------------------------------------------
-          // INGREDIENTE (lista filtrable)
+          // INGREDIENTE (Autocomplete con datos reales)
           // ----------------------------------------------------
-          Column(
-            children: [
-              TextField(
-                controller: ingredienteCtrl,
-                onChanged: filtrarIngredientes,
-                decoration: InputDecoration(
-                  hintText: "Ingrediente",
-                  hintStyle: const TextStyle(
-                    fontFamily: 'Poppins',
-                    color: Colors.white,
-                  ),
-                  filled: true,
-                  fillColor: Colors.orange.shade200,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(25),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-
-              if (ingredienteCtrl.text.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Column(
-                    children: ingredientesFiltrados.map((i) {
-                      return ListTile(
-                        dense: true,
-                        title: Text(i, style: const TextStyle(fontFamily: 'Poppins')),
-                        onTap: () {
-                          ingredienteCtrl.text = i;
-                          FocusScope.of(context).unfocus();
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') {
+                    return const Iterable<String>.empty();
+                  }
+                  return widget.catalogoIngredientes.where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  });
+                },
+                onSelected: (String selection) {
+                  ingredienteCtrl.text = selection;
+                },
+                fieldViewBuilder: (context, textCtrl, focusNode, onSubmitted) {
+                  textCtrl.text = ingredienteCtrl.text;
+                  textCtrl.addListener(() {
+                    ingredienteCtrl.text = textCtrl.text;
+                  });
+                  return _buildField(context, textCtrl, focusNode, "Ingrediente (Buscar...)");
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                   return Align(
+                     alignment: Alignment.topLeft,
+                     child: Material(
+                       elevation: 4.0,
+                       borderRadius: BorderRadius.circular(15),
+                       child: SizedBox(
+                         width: constraints.maxWidth,
+                         height: 200,
+                         child: ListView.builder(
+                           padding: EdgeInsets.zero,
+                           itemCount: options.length,
+                           itemBuilder: (BuildContext context, int index) {
+                             final String option = options.elementAt(index);
+                             return ListTile(
+                               title: Text(option, style: const TextStyle(fontFamily: 'Poppins')),
+                               onTap: () => onSelected(option),
+                             );
+                           },
+                         ),
+                       ),
+                     ),
+                   );
+                },
+              );
+            }
           ),
 
           const SizedBox(height: 14),

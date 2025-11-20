@@ -38,4 +38,9 @@ Route::post('/recuperar-password/enviar-codigo',    [PasswordResetController::cl
 Route::post('/recuperar-password/verificar-codigo', [PasswordResetController::class, 'verificarCodigo']);
 Route::post('/recuperar-password/cambiar',          [PasswordResetController::class, 'cambiarPassword']);
 
+//IA
 Route::post('/identificar-ingredientes', [IAController::class, 'identificar']);
+Route::post('/buscar-recetas', [IAController::class, 'buscarPorIngredientes']);
+// Listados auxiliares
+Route::get('/ingredientes/listar', [IAController::class, 'listarIngredientes']);
+Route::get('/unidades/listar', [IAController::class, 'listarUnidades']);

@@ -3,7 +3,13 @@ import '../widgets/barra_inferior.dart';
 import '../widgets/card_receta.dart';
 
 class IaRecetasPage extends StatefulWidget {
-  const IaRecetasPage({super.key});
+  // Recibimos la lista real del backend
+  final List<dynamic> recetas;
+
+  const IaRecetasPage({
+    super.key,
+    required this.recetas, // Ahora es obligatorio
+  });
 
   @override
   State<IaRecetasPage> createState() => _IaRecetasPageState();
@@ -11,65 +17,12 @@ class IaRecetasPage extends StatefulWidget {
 
 class _IaRecetasPageState extends State<IaRecetasPage>
     with SingleTickerProviderStateMixin {
-  int selectedIndex = 2; // Barra inferior seleccionada
+  int selectedIndex = 2; 
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
   static const Color naranja = Color(0xFFFF8C21);
-
-  // Lista de recetas simuladas
-  final List<Map<String, dynamic>> recetas = [
-    {
-      'imagen': 'assets/images/1im.png',
-      'titulo': 'Grilled Skewers (2 porciones)',
-      'descripcion': 'Jugosos pinchos con vegetales frescos y salsa casera.',
-      'rating': 4.8,
-      'tiempo': '30min',
-      'favorito': true,
-    },
-    {
-      'imagen': 'assets/images/2im.png',
-      'titulo': 'Nut brownie (1 porción)',
-      'descripcion': 'Postre suave de chocolate con trozos de nuez tostada.',
-      'rating': 4.6,
-      'tiempo': '20min',
-      'favorito': false,
-    },
-    {
-      'imagen': 'assets/images/3im.png',
-      'titulo': 'Oatmeal pancakes (3 porciones)',
-      'descripcion': 'Panqueques de avena con miel natural y fresas frescas.',
-      'rating': 4.9,
-      'tiempo': '25min',
-      'favorito': true,
-    },
-    {
-      'imagen': 'assets/images/4im.png',
-      'titulo': 'Iced Coffee (3 porciones)',
-      'descripcion': 'Refrescante mezcla de café espresso y leche fría.',
-      'rating': 4.5,
-      'tiempo': '10min',
-      'favorito': false,
-    },
-    {
-      'imagen': 'assets/images/5im.png',
-      'titulo': 'Tofu and Noodles (1 porción)',
-      'descripcion':
-          'Salteado de tofu con fideos de arroz y verduras crujientes.',
-      'rating': 4.4,
-      'tiempo': '35min',
-      'favorito': false,
-    },
-    {
-      'imagen': 'assets/images/6im.png',
-      'titulo': 'Fruit Bowl (2 porciones)',
-      'descripcion': 'Mezcla de frutas tropicales con yogurt natural.',
-      'rating': 4.7,
-      'tiempo': '15min',
-      'favorito': true,
-    },
-  ];
 
   @override
   void initState() {
@@ -93,6 +46,32 @@ class _IaRecetasPageState extends State<IaRecetasPage>
 
   @override
   Widget build(BuildContext context) {
+    // Si no hay recetas, mostramos mensaje
+    if (widget.recetas.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: naranja),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.search_off, size: 60, color: Colors.grey),
+              SizedBox(height: 10),
+              Text("No encontramos recetas con esos ingredientes", 
+                style: TextStyle(fontFamily: 'Poppins', color: Colors.grey)
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -121,27 +100,32 @@ class _IaRecetasPageState extends State<IaRecetasPage>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           child: GridView.builder(
-            itemCount: recetas.length,
+            itemCount: widget.recetas.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              // un poquito más alto cada card para evitar cualquier overflow
               childAspectRatio: 0.72,
             ),
             itemBuilder: (context, index) {
-              final receta = recetas[index];
+              final receta = widget.recetas[index];
 
+              // Mapeo de datos del Backend a la UI
+              // El backend devuelve: titulo, resumen, tiempo_preparacion, porciones_estimadas, imagen
               return CardReceta(
-                imagen: receta['imagen'],
-                titulo: receta['titulo'],
-                descripcion: receta['descripcion'],
-                rating: receta['rating'],
-                tiempo: receta['tiempo'],
-                favorito: receta['favorito'],
+                imagen: receta['imagen'] ?? 'assets/images/1im.png', // Fallback si es null
+                titulo: receta['titulo'] ?? 'Sin título',
+                descripcion: receta['resumen'] ?? 'Sin descripción',
+                // El backend no devuelve rating aún, simulamos uno o lo sacas si no lo tienes
+                rating: 4.5, 
+                tiempo: "${receta['tiempo_preparacion']} min",
+                // El backend no devuelve favorito aún, asumimos false
+                favorito: false, 
+                
                 onTapFavorito: () {
+                  // Lógica local visual (no guarda en BD aún)
                   setState(() {
-                    receta['favorito'] = !receta['favorito'];
+                    // Aquí podrías implementar la llamada al backend para guardar favorito
                   });
                 },
               );

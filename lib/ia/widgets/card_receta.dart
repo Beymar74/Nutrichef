@@ -27,40 +27,51 @@ class CardReceta extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF5), // Fondo naranja MUY tenue
+        color: const Color(0xFFFFFBF5),
         borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: Color(0xFFFFB870), width: 1.5), // Borde más intenso
+        border: Border.all(color: const Color(0xFFFFB870), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 8,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
           // -----------------------------------------------
-          // IMAGEN SOBRESALIENDO A LOS COSTADOS (sin errores)
+          // IMAGEN (Soporta Red y Assets)
           // -----------------------------------------------
           SizedBox(
             height: 120,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Imagen movida ligeramente hacia los lados
                 Transform.translate(
                   offset: const Offset(-0.5, 0),
                   child: Transform.scale(
                     scaleX: 1.03,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(borderRadius),
-                      child: Image.asset(
-                        imagen,
-                        fit: BoxFit.cover,
-                        height: 135,
-                        width: double.infinity,
-                      ),
+                      // AQUÍ ESTÁ LA MEJORA:
+                      child: imagen.startsWith('http') 
+                        ? Image.network(
+                            imagen,
+                            fit: BoxFit.cover,
+                            height: 135,
+                            width: double.infinity,
+                            errorBuilder: (c, e, s) => Container( // Si falla la carga
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                            ),
+                          )
+                        : Image.asset(
+                            imagen,
+                            fit: BoxFit.cover,
+                            height: 135,
+                            width: double.infinity,
+                          ),
                     ),
                   ),
                 ),

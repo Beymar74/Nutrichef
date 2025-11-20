@@ -11,7 +11,12 @@ return new class extends Migration
         Schema::create('ingredientes', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('id_alergeno')->nullable();
+            
             $table->string('descripcion', 200);
+            
+            
+            $table->string('yolo_key', 100)->nullable()->unique(); 
+            
             $table->timestamp('created_at', 0)->useCurrent();
             $table->timestamp('updated_at', 0)->useCurrent()->useCurrentOnUpdate();
 
