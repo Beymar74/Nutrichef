@@ -21,17 +21,10 @@ class DatabaseSeeder extends Seeder
             SubdominiosSeeder::class,
         ]);
 
-        // Luego seeders dependientes
-        // (Usuarios, ingredientes, etc. si los tienes)
-        // $this->call([
-        //     UsuariosSeeder::class,
-        //     IngredientesSeeder::class,
-        // ]);
-
-        // Finalmente tus seeders de recetas
         $this->call([
             RecetasSeeder::class,
             RecetasdosSeeder::class,
+            IngredientSeeder::class,
         ]);
     }
 }

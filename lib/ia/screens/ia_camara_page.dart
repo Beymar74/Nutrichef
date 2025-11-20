@@ -1,5 +1,7 @@
+import 'dart:io'; // Importante para File
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import '../controllers/ia_controller.dart'; // Importa tu controlador
 import 'ia_ingredientes_page.dart';
 
 class AppColors {
@@ -19,6 +21,11 @@ class IaCamaraPage extends StatefulWidget {
 class _IaCamaraPageState extends State<IaCamaraPage> {
   CameraController? controller;
   bool flashOn = false;
+  bool _isCameraInitialized = false;
+  
+  // Controlador de IA y estado de carga
+  final IaController _iaController = IaController();
+  bool _procesandoImagen = false;
 
   @override
   void initState() {
@@ -29,8 +36,10 @@ class _IaCamaraPageState extends State<IaCamaraPage> {
   Future<void> iniciarCamara() async {
     try {
       final cameras = await availableCameras();
+      // Intentar buscar la cámara trasera, si no hay, usa la primera disponible
       final backCamera = cameras.firstWhere(
         (cam) => cam.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
       );
 
       controller = CameraController(
@@ -42,20 +51,79 @@ class _IaCamaraPageState extends State<IaCamaraPage> {
       await controller!.initialize();
       if (!mounted) return;
 
-      setState(() {});
+      setState(() {
+        _isCameraInitialized = true;
+      });
     } catch (e) {
       debugPrint("Error al iniciar cámara: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo iniciar la cámara')),
+        );
+      }
     }
   }
 
   Future<void> toggleFlash() async {
-    if (controller == null) return;
+    if (controller == null || !controller!.value.isInitialized) return;
 
-    flashOn = !flashOn;
-    await controller!.setFlashMode(
-      flashOn ? FlashMode.torch : FlashMode.off,
-    );
-    setState(() {});
+    try {
+      flashOn = !flashOn;
+      await controller!.setFlashMode(
+        flashOn ? FlashMode.torch : FlashMode.off,
+      );
+      setState(() {});
+    } catch (e) {
+      debugPrint("Error cambiando flash: $e");
+    }
+  }
+
+  Future<void> _tomarYProcesarFoto() async {
+    if (controller == null || !controller!.value.isInitialized || _procesandoImagen) return;
+
+    try {
+      // 1. Mostrar carga
+      setState(() {
+        _procesandoImagen = true;
+      });
+
+      // 2. Tomar la foto
+      final XFile photo = await controller!.takePicture();
+      
+      // 3. Enviar al Backend (IA)
+      // Nota: Convertimos XFile a File
+      final ingredientesDetectados = await _iaController.identificarIngredientes(File(photo.path));
+
+      if (!mounted) return;
+
+      // 4. Navegar a la pantalla de resultados
+      // Usamos pushReplacement para que al volver atrás no regrese a la cámara congelada
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => IaIngredientesPage(ingredientesIniciales: ingredientesDetectados),
+        ),
+      );
+
+    } catch (e) {
+      debugPrint("Error procesando foto: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      // Solo desactivamos la carga si seguimos en esta pantalla (por si hubo error)
+      if (mounted) {
+        setState(() {
+          _procesandoImagen = false;
+        });
+      }
+    }
   }
 
   @override
@@ -68,152 +136,171 @@ class _IaCamaraPageState extends State<IaCamaraPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+    // Si no está lista o hay error, pantalla negra de carga
+    if (!_isCameraInitialized || controller == null) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: controller == null || !controller!.value.isInitialized
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              )
-            : Stack(
+        child: Stack(
+          children: [
+            // 1. Vista de Cámara (Ocupa todo)
+            SizedBox(
+              width: size.width,
+              height: size.height,
+              child: CameraPreview(controller!),
+            ),
+
+            // 2. Degradado superior (Estético)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 150,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black54,
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. Texto Superior
+            Positioned(
+              top: 20,
+              left: 20,
+              right: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Cámara
-                  SizedBox(
-                    width: size.width,
-                    height: size.height,
-                    child: CameraPreview(controller!),
+                  // Botón atrás pequeño
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24),
                   ),
-
-                  // Degradado superior
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 450,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.white,
-                            Colors.white70,
-                            Colors.white30,
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Toma Una Fotografía',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
                     ),
                   ),
-
-                  // Texto
-                  Positioned(
-                    top: 40,
-                    left: 25,
-                    right: 25,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Toma Una Fotografía',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Asegúrate de que todos los ingredientes que quieras identificar se encuentren dentro de la imagen',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            height: 1.4,
-                            color: AppColors.textLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Botones inferiores
-                  Positioned(
-                    bottom: 35,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // CAPTURAR — solo navega
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const IaIngredientesPage(),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            width: 65,
-                            height: 65,
-                            margin: const EdgeInsets.symmetric(horizontal: 25),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Image.asset(
-                                'assets/images/CamaraLogo.png',
-                                width: 32,
-                                height: 32,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // FLASH usando tus ASSETS
-                        GestureDetector(
-                          onTap: toggleFlash,
-                          child: Container(
-                            width: 65,
-                            height: 65,
-                            margin: const EdgeInsets.symmetric(horizontal: 25),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 8,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Image.asset(
-                                flashOn
-                                    ? 'assets/images/FlashLogo.png'
-                                    : 'assets/images/FlashLogo.png',
-                                width: 28,
-                                height: 28,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Asegúrate de que todos los ingredientes estén visibles.',
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      color: Colors.white70,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
                     ),
                   ),
                 ],
               ),
+            ),
+
+            // 4. Controles Inferiores (Flash y Disparador)
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Espacio vacío para equilibrar
+                  const SizedBox(width: 65),
+
+                  // BOTÓN DISPARADOR
+                  GestureDetector(
+                    onTap: _tomarYProcesarFoto,
+                    child: Container(
+                      width: 75,
+                      height: 75,
+                      decoration: BoxDecoration(
+                        color: _procesandoImagen ? Colors.grey : AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: _procesandoImagen
+                          ? const Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            )
+                          : const Center(
+                              child: Icon(Icons.camera_alt, color: Colors.white, size: 35),
+                            ),
+                    ),
+                  ),
+
+                  // BOTÓN FLASH
+                  GestureDetector(
+                    onTap: toggleFlash,
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.black45,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white30, width: 1),
+                      ),
+                      child: Icon(
+                        flashOn ? Icons.flash_on : Icons.flash_off,
+                        color: flashOn ? Colors.yellow : Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 5. Overlay de "Procesando" (Pantalla completa)
+            if (_procesandoImagen)
+              Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      CircularProgressIndicator(color: AppColors.primary),
+                      SizedBox(height: 20),
+                      Text(
+                        "Analizando Ingredientes...",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Poppins',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
