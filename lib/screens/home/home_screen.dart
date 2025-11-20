@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Receta> _recetasFiltradas = [];
   Receta? _recetaDestacada;
   bool _isLoading = true;
-  
   // Categoría seleccionada
   String _categoriaSeleccionada = 'Todas';
 
@@ -143,9 +142,10 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
 
       case 1:
-        Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const SocialScreen()),
+        // Usamos push para agregar la pantalla al historial de navegación
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const SocialScreen()),
         );
         break;
 
@@ -161,6 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

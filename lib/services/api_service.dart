@@ -2,10 +2,28 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  // URL base del backend Laravel
   // URL base: apunta al backend Laravel (Docker puerto 18000)
   //static const String baseUrl = 'http://10.0.2.2:18000/api';
-  static const String baseUrl = 'http://192.168.0.16:18000/api';
 
+  static const String baseUrl = 'http://192.168.0.5:18000/api';  // Cambia por tu IP
+
+
+  // TOKEN global después del login
+  static String? token;
+
+  // ÉTODO UNIVERSAL DE HEADERS (soluciona tu error)
+  static Map<String, String> headers() {
+    return {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  // ---------------------------------------------------------
+  // REGISTRO
+  // ---------------------------------------------------------
   static Future<Map<String, dynamic>> register({
     required String nombres,
     required String apellidoPaterno,
@@ -15,34 +33,26 @@ class ApiService {
     required String fechaNacimiento,
     required String password,
     required String confirmarPassword,
-    required String name, 
+    required String name,
   }) async {
     try {
-      print('📡 Enviando solicitud de registro...');
-
       final response = await http
           .post(
             Uri.parse('$baseUrl/register'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: headers(),
             body: jsonEncode({
               'nombres': nombres,
               'apellido_paterno': apellidoPaterno,
               'apellido_materno': apellidoMaterno,
               'telefono': celular,
               'fecha_nacimiento': fechaNacimiento,
-              'name': name, // nombre corto tipo “kiap”
+              'name': name,
               'email': email,
               'password': password,
               'password_confirmation': confirmarPassword,
             }),
           )
           .timeout(const Duration(seconds: 15));
-
-      print('📦 Registro -> Código: ${response.statusCode}');
-      print('📦 Registro -> Respuesta: ${response.body}');
 
       final data = jsonDecode(response.body);
 
@@ -61,7 +71,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('❌ Error de conexión en registro: $e');
       return {
         'success': false,
         'message': 'Error al conectar con el servidor',
@@ -69,20 +78,19 @@ class ApiService {
       };
     }
   }
+
+  // ---------------------------------------------------------
+  // LOGIN
+  // ---------------------------------------------------------
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
     try {
-      print('🔑 Iniciando sesión...');
-
       final response = await http
           .post(
             Uri.parse('$baseUrl/login'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
+            headers: headers(),
             body: jsonEncode({
               'email': email,
               'password': password,
@@ -90,16 +98,15 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 15));
 
-      print('📦 Login -> Código: ${response.statusCode}');
-      print('📦 Login -> Respuesta: ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 && data['usuario'] != null) {
+        // Guardar token para futuros requests 🔐
+        token = data['token'];
+
         final usuario = data['usuario'];
         final persona = usuario['persona'];
 
-        // 🧠 Si no hay 'name', lo generamos de forma segura
         String nombreFinal = usuario['name'] ??
             '${persona?['nombres']?.split(" ").first ?? ''}${persona?['apellido_paterno']?[0] ?? ''}'
                 .toLowerCase();
@@ -108,8 +115,8 @@ class ApiService {
           'success': true,
           'message': data['message'] ?? 'Inicio de sesión exitoso',
           'usuario': usuario,
-          'nombreUsuario': nombreFinal, 
-          'token': data['token'] ?? '',// 👈 lo devolvemos al frontend
+          'nombreUsuario': nombreFinal,
+          'token': data['token'],
         };
       } else {
         return {
@@ -119,7 +126,6 @@ class ApiService {
         };
       }
     } catch (e) {
-      print('❌ Error de conexión en login: $e');
       return {
         'success': false,
         'message': 'Error al conectar con el servidor',
@@ -127,21 +133,20 @@ class ApiService {
       };
     }
   }
+
+  // ---------------------------------------------------------
+  // TUS MÉTODOS GOOGLE — NO TOCADOS
+  // ---------------------------------------------------------
+
   static Future<Map<String, dynamic>> verificarUsuarioGoogle(String email) async {
     try {
-      print('🔍 Verificando usuario Google con email: $email');
-
       final response = await http.post(
         Uri.parse('$baseUrl/verificar_usuario_google.php'),
         body: {'email': email},
       );
 
-      print('📦 Verificar Google -> Código: ${response.statusCode}');
-      print('📦 Verificar Google -> Respuesta: ${response.body}');
-
       return jsonDecode(response.body);
     } catch (e) {
-      print('❌ Error al verificar usuario Google: $e');
       return {
         'success': false,
         'message': 'Error al verificar usuario Google',
@@ -157,8 +162,6 @@ class ApiService {
     String? foto,
   }) async {
     try {
-      print('🆕 Registrando usuario Google: $email');
-
       final response = await http.post(
         Uri.parse('$baseUrl/registrar_usuario_google.php'),
         body: {
@@ -169,12 +172,8 @@ class ApiService {
         },
       );
 
-      print('📦 Registro Google -> Código: ${response.statusCode}');
-      print('📦 Registro Google -> Respuesta: ${response.body}');
-
       return jsonDecode(response.body);
     } catch (e) {
-      print('❌ Error al registrar usuario Google: $e');
       return {
         'success': false,
         'message': 'Error al registrar usuario Google',

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-
+import '../services/publicaciones_service.dart';
+import '../models/publicacion_model.dart';
+import 'detalles_publicacion.dart';
 class SocialScreen extends StatefulWidget {
   const SocialScreen({super.key});
 
@@ -7,76 +9,79 @@ class SocialScreen extends StatefulWidget {
   State<SocialScreen> createState() => _SocialScreenState();
 }
 
-class _SocialScreenState extends State<SocialScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SocialScreenState extends State<SocialScreen> {
+  List<Publicacion> publicaciones = []; // Usamos una lista de Publicacion
+  bool _isLoading = true;
+  String errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _cargarPublicaciones();  // Cargar publicaciones al iniciar la pantalla
+  }
+
+  // Método para cargar publicaciones desde el servicio
+  Future<void> _cargarPublicaciones() async {
+    try {
+      final data = await PublicacionesService.getPublicaciones();
+      setState(() {
+        publicaciones = data;  // Asignar las publicaciones a la lista
+        _isLoading = false;  // Indicar que la carga de datos ha terminado
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        errorMessage = 'Error al cargar publicaciones';  // Error al conectar
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Comunidad NutriChef"),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.article), text: "Publicaciones"),
-            Tab(icon: Icon(Icons.comment), text: "Comentarios"),
-          ],
+        backgroundColor: const Color(0xFFFF8C21),
+        title: const Text('Comunidad'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);  // Vuelve a la pantalla anterior
+          },
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildPublicaciones(),
-          _buildComentarios(),
-        ],
-      ),
-    );
-  }
-
-  /// Sección Publicaciones
-  Widget _buildPublicaciones() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: 5, // ejemplo
-      itemBuilder: (context, index) {
-      return Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: ListTile(
-          leading: const CircleAvatar(child: Icon(Icons.person)),
-          title: Text("Publicación #$index"),
-          subtitle: const Text(
-            "Esta es una publicación de ejemplo en la comunidad de NutriChef.",
-          ),
-          trailing: const Icon(Icons.favorite_border),
-        ),
-      );
-      },
-    );
-  }
-
-  /// Sección Comentarios
-  Widget _buildComentarios() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: 5, // ejemplo
-      itemBuilder: (context, index) {
-        return Card(
-          elevation: 3,
-          child: ListTile(
-            leading: const Icon(Icons.comment),
-            title: Text("Comentario #$index"),
-            subtitle: const Text("Este es un comentario de ejemplo."),
-          ),
-        );
-      },
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())  // Indicador de carga
+          : publicaciones.isEmpty
+              ? Center(child: Text(errorMessage.isEmpty ? "No hay publicaciones" : errorMessage))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: publicaciones.length,
+                  itemBuilder: (context, index) {
+                    final p = publicaciones[index];  // Obtenemos la publicación
+                    return GestureDetector(
+                      onTap: () {
+                        // Navegar a la pantalla de detalles de la publicación
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetallesPublicacionScreen (publicacion: p),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: ListTile(
+                          title: Text(p.titulo),  // Título de la publicación
+                          subtitle: Text(p.resumen ?? 'No disponible'),  // Resumen de la publicación
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
