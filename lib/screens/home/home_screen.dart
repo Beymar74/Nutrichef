@@ -7,6 +7,9 @@ import '../../recetas.dart';
 import 'home_content.dart';
 import 'widgets/custom_bottom_nav.dart';
 
+// --- IMPORTANTE: Importa tu módulo de IA ---
+import '../../ia/screens/ia_inicio_page.dart'; 
+
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
   
@@ -109,28 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // NUEVO: Método para manejar el botón de cámara OCR
+  // ------------------------------------------------------------
+  // ✅ MÉTODO MODIFICADO: Conexión con Módulo IA
+  // ------------------------------------------------------------
   void _onCameraPressed() {
-    print('📸 Cámara OCR presionada - Implementar funcionalidad de AI OCR');
-    
-    // TODO: Aquí puedes navegar a tu pantalla de cámara OCR
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (_) => CameraOCRScreen()),
-    // );
-    
-    // O mostrar un diálogo temporal
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('🤖 AI OCR'),
-        content: const Text('Funcionalidad de escaneo con IA próximamente...'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const IaInicioPage(),
       ),
     );
   }
@@ -162,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      extendBody: true, // ✅ AÑADE ESTA LÍNEA
+      extendBody: true, 
       body: SafeArea(
         child: _selectedIndex == 3
             ? PerfilView(usuario: widget.usuario)
