@@ -62,7 +62,9 @@
                 <div class="flex items-center gap-3">
                     <!-- Logo personalizado -->
                     <div class="bg-white p-1 rounded-lg shadow-sm w-8 h-8 flex items-center justify-center overflow-hidden">
-                        <img src="<?php echo e(asset('img/logo.png')); ?>" alt="Logo NutriChef" class="w-full h-full object-contain">
+                        <!-- Usamos un icono por defecto si la imagen no carga -->
+                        <i data-lucide="utensils" class="text-ambar-800 w-5 h-5"></i>
+                        
                     </div>
                     <span class="text-lg font-bold tracking-wide text-white">NutriChef</span>
                 </div>
@@ -74,22 +76,28 @@
                 <p class="px-4 text-xs font-bold text-ambar-200 uppercase tracking-wider mb-2 mt-2">Principal</p>
                 
                 <!-- Dashboard -->
-                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-ambar-50 hover:bg-ambar-900/50 hover:text-white rounded-lg transition-all group">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 group-hover:text-calabaza-500 transition-colors"></i>
+                <a href="<?php echo e(route('admin.dashboard')); ?>" 
+                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                   <?php echo e(request()->routeIs('admin.dashboard') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white'); ?>">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 <?php echo e(request()->routeIs('admin.dashboard') ? '' : 'group-hover:text-calabaza-500 transition-colors'); ?>"></i>
                     <span>Dashboard</span>
                 </a>
 
-                <!-- Usuarios -->
-                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-ambar-50 hover:bg-ambar-900/50 hover:text-white rounded-lg transition-all group">
-                    <i data-lucide="users" class="w-5 h-5 group-hover:text-calabaza-500 transition-colors"></i>
+                <!-- Usuarios (CONECTADO) -->
+                <a href="<?php echo e(route('admin.usuarios.index')); ?>" 
+                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                   <?php echo e(request()->routeIs('admin.usuarios.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white'); ?>">
+                    <i data-lucide="users" class="w-5 h-5 <?php echo e(request()->routeIs('admin.usuarios.*') ? '' : 'group-hover:text-calabaza-500 transition-colors'); ?>"></i>
                     <span>Usuarios</span>
                 </a>
 
                 <p class="px-4 text-xs font-bold text-ambar-200 uppercase tracking-wider mb-2 mt-6">Gestión</p>
 
-                <!-- Recetas (Activo - Naranja Calabaza) -->
-                <a href="<?php echo e(route('admin.recetas.index')); ?>" class="flex items-center gap-3 px-4 py-2.5 bg-calabaza-600 text-white rounded-lg shadow-md shadow-calabaza-900/20 transition-all transform hover:-translate-y-0.5">
-                    <i data-lucide="utensils-crossed" class="w-5 h-5"></i>
+                <!-- Recetas (CONECTADO) -->
+                <a href="<?php echo e(route('admin.recetas.index')); ?>" 
+                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                   <?php echo e(request()->routeIs('admin.recetas.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white'); ?>">
+                    <i data-lucide="utensils-crossed" class="w-5 h-5 <?php echo e(request()->routeIs('admin.recetas.*') ? '' : 'group-hover:text-calabaza-500 transition-colors'); ?>"></i>
                     <span class="font-medium">Recetas</span>
                 </a>
 
@@ -110,18 +118,21 @@
             <div class="p-4 border-t border-ambar-900 bg-ambar-950/30">
                 <div class="flex items-center gap-3 mb-3 px-2">
                     <div class="w-9 h-9 rounded-full bg-calabaza-100 flex items-center justify-center text-sm font-bold text-calabaza-700 border-2 border-calabaza-200 overflow-hidden">
-                        <!-- Opcional: Aquí también podrías poner el logo si quisieras -->
-                        A
+                        <?php echo e(substr(Auth::user()->name ?? 'A', 0, 1)); ?>
+
                     </div>
                     <div class="overflow-hidden">
-                        <p class="text-sm font-medium text-white truncate">Admin Principal</p>
-                        <p class="text-xs text-ambar-200 truncate">admin@nutrichef.com</p>
+                        <p class="text-sm font-medium text-white truncate"><?php echo e(Auth::user()->name ?? 'Admin'); ?></p>
+                        <p class="text-xs text-ambar-200 truncate w-32"><?php echo e(Auth::user()->email ?? ''); ?></p>
                     </div>
                 </div>
-                <button class="flex items-center justify-center gap-2 text-ambar-200 hover:text-white hover:bg-white/10 w-full px-4 py-2 rounded-lg transition-colors text-sm font-medium group">
-                    <i data-lucide="log-out" class="w-4 h-4 group-hover:text-calabaza-500 transition-colors"></i>
-                    <span>Cerrar Sesión</span>
-                </button>
+                <form method="POST" action="<?php echo e(route('logout')); ?>">
+                    <?php echo csrf_field(); ?>
+                    <button type="submit" class="flex items-center justify-center gap-2 text-ambar-200 hover:text-white hover:bg-white/10 w-full px-4 py-2 rounded-lg transition-colors text-sm font-medium group">
+                        <i data-lucide="log-out" class="w-4 h-4 group-hover:text-calabaza-500 transition-colors"></i>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
             </div>
         </aside>
 
@@ -139,12 +150,12 @@
                     <!-- Título de Página -->
                     <h2 class="text-lg font-bold text-slate-800 hidden sm:block flex items-center gap-2">
                         <span class="w-1 h-6 bg-calabaza-500 rounded-full"></span>
-                        <?php echo $__env->yieldContent('titulo'); ?>
+                        <?php echo $__env->yieldContent('titulo_pagina', 'Panel Administrativo'); ?>
                     </h2>
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <!-- Notificaciones con punto Naranja -->
+                    <!-- Notificaciones -->
                     <button class="p-2 text-slate-400 hover:text-calabaza-600 rounded-full hover:bg-calabaza-50 transition-colors relative">
                         <i data-lucide="bell" class="w-5 h-5"></i>
                         <span class="absolute top-2 right-2 w-2 h-2 bg-calabaza-500 rounded-full border-2 border-white"></span>
@@ -152,8 +163,8 @@
                     
                     <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
                     
-                    <!-- Info Usuario -->
-                    <span class="text-sm text-slate-600 font-medium hidden sm:block">Hola, Admin</span>
+                    <!-- Info Usuario (Navbar) -->
+                    <span class="text-sm text-slate-600 font-medium hidden sm:block">Hola, <?php echo e(Auth::user()->name ?? 'Admin'); ?></span>
                 </div>
             </header>
 
@@ -165,11 +176,12 @@
 
     </div>
 
+    <!-- SCRIPTS GLOBALES -->
     <script>
-        // Inicializar Iconos
+        // 1. Inicializar Iconos
         lucide.createIcons();
 
-        // Lógica Sidebar Móvil
+        // 2. Lógica Sidebar Móvil
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobile-overlay');
@@ -184,47 +196,38 @@
                 setTimeout(() => overlay.classList.add('hidden'), 300);
             }
         }
-    </script>
-<script>
-        // Inicializar Iconos
-        lucide.createIcons();
 
-        // Lógica Sidebar... (código existente)
-
-        // --- NUEVO: Lógica del Modal ---
-        function openModal(modalId, actionUrl = null) {
+        // 3. LÓGICA VITAL PARA MODALES (Eliminar/Banear)
+        function openModal(modalId, actionUrl) {
             const modal = document.getElementById(modalId);
-            const backdrop = document.getElementById(modalId + '-backdrop');
-            const panel = document.getElementById(modalId + '-panel');
-            
-            // Si se pasa una URL de acción dinámica, actualizamos el formulario
-            if(actionUrl) {
-                const form = document.getElementById(modalId + '-form');
-                if(form) form.action = actionUrl;
+            if(modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex'); 
+                
+                // Inyectar la ruta de eliminación en el formulario del modal
+                const form = modal.querySelector('form');
+                if(form) {
+                    form.action = actionUrl;
+                }
             }
-
-            modal.classList.remove('hidden');
-            
-            // Animación de entrada (pequeño delay para que CSS detecte el cambio de display)
-            setTimeout(() => {
-                backdrop.classList.remove('opacity-0');
-                panel.classList.remove('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-            }, 10);
         }
 
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
-            const backdrop = document.getElementById(modalId + '-backdrop');
-            const panel = document.getElementById(modalId + '-panel');
-
-            // Animación de salida
-            backdrop.classList.add('opacity-0');
-            panel.classList.add('opacity-0', 'translate-y-4', 'sm:translate-y-0', 'sm:scale-95');
-
-            // Ocultar después de la animación
-            setTimeout(() => {
+            if(modal) {
                 modal.classList.add('hidden');
-            }, 300);
+                modal.classList.remove('flex');
+            }
+        }
+        
+        // Cerrar al hacer clic fuera del modal
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('[id$="Modal"]');
+            modals.forEach(modal => {
+                if (!modal.classList.contains('hidden') && event.target === modal) {
+                     closeModal(modal.id);
+                }
+            });
         }
     </script>
 </body>
