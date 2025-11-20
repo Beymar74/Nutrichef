@@ -57,7 +57,7 @@
                 </div>
 
                 <div class="text-sm text-orange-200">
-                    &copy; <?php echo e(date('Y')); ?> Escuela Militar de Ingeniería
+                    &copy; <?php echo e(date('Y')); ?> Nutrichefcitos
                 </div>
             </div>
         </div>

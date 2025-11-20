@@ -57,7 +57,7 @@
                 </div>
 
                 <div class="text-sm text-orange-200">
-                    &copy; {{ date('Y') }} Escuela Militar de Ingeniería
+                    &copy; {{ date('Y') }} Nutrichefcitos
                 </div>
             </div>
         </div>

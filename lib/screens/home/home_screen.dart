@@ -109,6 +109,32 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // NUEVO: Método para manejar el botón de cámara OCR
+  void _onCameraPressed() {
+    print('📸 Cámara OCR presionada - Implementar funcionalidad de AI OCR');
+    
+    // TODO: Aquí puedes navegar a tu pantalla de cámara OCR
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (_) => CameraOCRScreen()),
+    // );
+    
+    // O mostrar un diálogo temporal
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('🤖 AI OCR'),
+        content: const Text('Funcionalidad de escaneo con IA próximamente...'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onNavBarTap(int index) {
     switch (index) {
       case 0:
@@ -136,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      extendBody: true, // ✅ AÑADE ESTA LÍNEA
       body: SafeArea(
         child: _selectedIndex == 3
             ? PerfilView(usuario: widget.usuario)
@@ -144,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: CustomBottomNav(
         selectedIndex: _selectedIndex,
         onTap: _onNavBarTap,
+        onCameraPressed: _onCameraPressed,
       ),
     );
   }
