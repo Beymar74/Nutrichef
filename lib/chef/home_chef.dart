@@ -65,13 +65,12 @@ class DetallesRecetaScreen extends StatelessWidget {
 }
 
 class HomeChef extends StatefulWidget {
-  final String nombreChef;
-  final int chefId;
+  // 🔹 MODIFICADO: Ahora acepta el objeto usuario completo
+  final Map<String, dynamic> usuario;
 
   const HomeChef({
     super.key,
-    required this.nombreChef,
-    required this.chefId,
+    required this.usuario,
   });
 
   @override
@@ -81,6 +80,11 @@ class HomeChef extends StatefulWidget {
 class _HomeChefState extends State<HomeChef> {
   int _selectedIndex = 0;
   final RecetaService _recetaService = RecetaService();
+  
+  // 🔹 Variables extraídas del usuario
+  late String nombreChef;
+  late int chefId;
+  late String emailChef;
   
   // Listas de recetas
   List<Receta> _misRecetas = [];
@@ -103,7 +107,29 @@ class _HomeChefState extends State<HomeChef> {
   @override
   void initState() {
     super.initState();
+    
+    // 🔹 EXTRAER DATOS DEL USUARIO
+    _extraerDatosUsuario();
     _cargarMisRecetas();
+  }
+
+  void _extraerDatosUsuario() {
+    // Extraer nombre del chef
+    nombreChef = widget.usuario['name'] ?? 
+                 widget.usuario['nombres'] ?? 
+                 'Chef';
+    
+    // Extraer ID del chef
+    chefId = widget.usuario['id'] ?? 0;
+    
+    // Extraer email
+    emailChef = widget.usuario['email'] ?? '';
+    
+    print('🔍 Datos del Chef:');
+    print('   Nombre: $nombreChef');
+    print('   ID: $chefId');
+    print('   Email: $emailChef');
+    print('   Usuario completo: ${widget.usuario}');
   }
 
   Future<void> _cargarMisRecetas() async {
@@ -173,7 +199,7 @@ class _HomeChefState extends State<HomeChef> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CrearRecetaScreen(chefId: widget.chefId),
+        builder: (context) => CrearRecetaScreen(chefId: chefId),
       ),
     ).then((_) => _cargarMisRecetas());
   }
@@ -188,11 +214,11 @@ class _HomeChefState extends State<HomeChef> {
   }
 
   void _onNavBarTap(int index) {
-  setState(() {
-    _selectedIndex = index;
-  });
+    setState(() {
+      _selectedIndex = index;
+    });
 
-  switch (index) {
+    switch (index) {
       case 0:
         // Ya estamos en Home Chef
         break;
@@ -210,7 +236,8 @@ class _HomeChefState extends State<HomeChef> {
         _mostrarEstadisticasCompletas();
         break;
       case 3:
-        // Perfil
+        // Perfil - Mostrar información del chef
+        _mostrarPerfilChef();
         break;
     }
   }
@@ -221,6 +248,15 @@ class _HomeChefState extends State<HomeChef> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _buildEstadisticasModal(),
+    );
+  }
+
+  void _mostrarPerfilChef() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildPerfilModal(),
     );
   }
 
@@ -307,7 +343,6 @@ class _HomeChefState extends State<HomeChef> {
       ),
 
       // FLOATING ACTION BUTTON
-      
       floatingActionButton: FloatingActionButton(
         onPressed: _navegarACrearReceta,
         backgroundColor: const Color(0xFFFF8C21),
@@ -353,38 +388,38 @@ class _HomeChefState extends State<HomeChef> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    '¡Hola ${widget.nombreChef}!',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFEC888D),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD54F),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'PRO',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                children: [
+                  Flexible(
+                    child: Text(
+                      '¡Hola $nombreChef!',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFEC888D),
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD54F),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'CHEF',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 'Panel de Control de Recetas',
@@ -1083,6 +1118,244 @@ class _HomeChefState extends State<HomeChef> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🔹 NUEVO: Modal de perfil del chef
+  Widget _buildPerfilModal() {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      child: Column(
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          // Contenido
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Avatar grande
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFF8C21), Color(0xFFFFB84D)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF8C21).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.restaurant_menu,
+                      color: Colors.white,
+                      size: 50,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Nombre
+                  Text(
+                    nombreChef,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFEC888D),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Email
+                  Text(
+                    emailChef,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // Badge de chef
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD54F),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      '👨‍🍳 Chef Profesional',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  
+                  // Información de usuario
+                  _buildInfoTile(
+                    Icons.badge,
+                    'ID de Chef',
+                    chefId.toString(),
+                  ),
+                  _buildInfoTile(
+                    Icons.restaurant,
+                    'Recetas Totales',
+                    _misRecetas.length.toString(),
+                  ),
+                  _buildInfoTile(
+                    Icons.check_circle,
+                    'Recetas Publicadas',
+                    _recetasPublicadas.length.toString(),
+                  ),
+                  _buildInfoTile(
+                    Icons.star,
+                    'Calificación Promedio',
+                    _calificacionPromedio.toStringAsFixed(1),
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Botón cerrar sesión
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        _cerrarSesion();
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Cerrar Sesión'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF44336),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey[200]!,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF8C21).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFFFF8C21),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFEC888D),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _cerrarSesion() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.logout,
+              color: Color(0xFFF44336),
+              size: 28,
+            ),
+            SizedBox(width: 10),
+            Text('Cerrar Sesión'),
+          ],
+        ),
+        content: const Text(
+          '¿Estás seguro de que deseas cerrar sesión?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Aquí iría la lógica de cerrar sesión
+              // Por ahora solo navegamos de vuelta al login
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF44336),
+            ),
+            child: const Text(
+              'Cerrar Sesión',
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
