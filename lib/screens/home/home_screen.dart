@@ -6,6 +6,7 @@ import '../../perfil_view.dart';
 import '../../recetas.dart';
 import 'home_content.dart';
 import 'widgets/custom_bottom_nav.dart';
+import '../../comunidad/social.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
@@ -116,7 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
 
       case 1:
-        // TODO: Implementar chat
+        Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SocialScreen()),
+        );
         break;
 
       case 2:
