@@ -1,5 +1,6 @@
 {
   "IDX.agenticWorkspace": true,
   "python-envs.defaultEnvManager": "ms-python.python:system",
-  "python-envs.pythonProjects": []
+  "python-envs.pythonProjects": [],
+  "cmake.sourceDirectory": "C:/Users/TRABAJO/ProyectoSoft/Nutrichef/linux"
 }

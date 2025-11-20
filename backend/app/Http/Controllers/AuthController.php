@@ -49,7 +49,7 @@ class AuthController extends Controller
 
         // 👤 Crear registro en tabla USUARIOS
         $usuario = Usuario::create([
-            'id_rol'            => 2, // Rol por defecto: usuario
+            'id_rol'            => 4, // Rol por defecto: usuario
             'id_persona'        => $persona->id,
             'name'              => $nameGenerado,
             'email'             => $request->email,
