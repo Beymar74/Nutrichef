@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'registro.dart';
 import 'home.dart';
+import 'chef/home_chef.dart'; // 🔹 IMPORTAR HomeChef
 import 'recuperar_password.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
@@ -55,9 +56,28 @@ Future<void> _iniciarSesion() async {
       ),
     );
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
-    );
+    // 🔹 REDIRECCIÓN SEGÚN ROL
+    final idRol = usuario['id_rol'];
+    
+    print('🔍 DEBUG - ID del rol recibido: $idRol');
+    print('🔍 DEBUG - Tipo de dato: ${idRol.runtimeType}');
+    
+    // Convertir a int si viene como String
+    final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
+    
+    if (rolNumerico == 2) {
+      // ROL CHEF (id_rol = 2) → Redirigir a HomeChef
+      print('✅ Redirigiendo a HomeChef');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
+      );
+    } else {
+      // ROL USUARIO NORMAL (id_rol = 1) → Redirigir a Home
+      print('✅ Redirigiendo a Home (usuario normal)');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
+      );
+    }
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -92,6 +112,8 @@ Future<void> _iniciarSesion() async {
 
     if (verificar['success'] == true && verificar['existe'] == true) {
       // ✅ Usuario ya registrado → iniciar sesión
+      final usuario = verificar['usuario'] ?? {};
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Bienvenido de nuevo 👋'),
@@ -99,14 +121,30 @@ Future<void> _iniciarSesion() async {
         ),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => Home(
-            usuario: verificar['usuario'],
-          ),
-        ),
-      );
+      // 🔹 REDIRECCIÓN SEGÚN ROL PARA GOOGLE
+      final idRol = usuario['id_rol'];
+      
+      print('🔍 DEBUG Google - ID del rol: $idRol');
+      print('🔍 DEBUG Google - Tipo: ${idRol.runtimeType}');
+      
+      // Convertir a int si viene como String
+      final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
+      
+      if (rolNumerico == 2) {
+        // ROL CHEF → Redirigir a HomeChef
+        print('✅ Google: Redirigiendo a HomeChef');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
+        );
+      } else {
+        // ROL USUARIO NORMAL → Redirigir a Home
+        print('✅ Google: Redirigiendo a Home (usuario normal)');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
+        );
+      }
     } else {
       // 🔹 Si no existe → registrar en base de datos
       final partesNombre = nombreCompleto.split(' ');
@@ -121,6 +159,12 @@ Future<void> _iniciarSesion() async {
       );
 
       if (registro['success'] == true) {
+        final usuario = registro['usuario'] ?? {
+          'nombres': nombres,
+          'email': email,
+          'foto': foto,
+        };
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Cuenta creada con Google ✅'),
@@ -128,19 +172,30 @@ Future<void> _iniciarSesion() async {
           ),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => Home(
-              usuario: registro['usuario'] ??
-                  {
-                    'nombres': nombres,
-                    'email': email,
-                    'foto': foto,
-                  },
-            ),
-          ),
-        );
+        // 🔹 REDIRECCIÓN SEGÚN ROL PARA NUEVO USUARIO GOOGLE
+        final idRol = usuario['id_rol'];
+        
+        print('🔍 DEBUG Google Nuevo - ID del rol: $idRol');
+        print('🔍 DEBUG Google Nuevo - Tipo: ${idRol.runtimeType}');
+        
+        // Convertir a int si viene como String
+        final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
+        
+        if (rolNumerico == 2) {
+          // ROL CHEF → Redirigir a HomeChef
+          print('✅ Google Nuevo: Redirigiendo a HomeChef');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
+          );
+        } else {
+          // ROL USUARIO NORMAL → Redirigir a Home
+          print('✅ Google Nuevo: Redirigiendo a Home (usuario normal)');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
