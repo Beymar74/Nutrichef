@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Api\PublicacionController;
+use App\Http\Controllers\Api\ComentarioController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -24,34 +25,29 @@ Route::post('/login',    [AuthController::class, 'login']);
 
 // Rutas protegidas
 Route::middleware('auth:sanctum')->group(function () {
-    Route::put('/usuario/perfil',          [AuthController::class, 'actualizarPerfil']);
-    Route::put('/perfil/dieta',            [PerfilController::class, 'actualizarDieta']);
-    Route::put('/perfil/nivel-cocina',     [PerfilController::class, 'actualizarNivelCocina']);
-    Route::put('/perfil/alergias',         [PerfilController::class, 'actualizarAlergias']);
+    // Rutas de usuario y perfil
+    Route::put('/usuario/perfil', [AuthController::class, 'actualizarPerfil']);
+    Route::put('/perfil/dieta', [PerfilController::class, 'actualizarDieta']);
+    Route::put('/perfil/nivel-cocina', [PerfilController::class, 'actualizarNivelCocina']);
+    Route::put('/perfil/alergias', [PerfilController::class, 'actualizarAlergias']);
+
+    // Rutas para publicaciones
+    Route::get('/publicaciones', [PublicacionController::class, 'index']);  // Obtener todas las publicaciones
+    Route::get('/publicaciones/{id}', [PublicacionController::class, 'show']);  // Obtener publicación por ID
+    Route::post('/publicaciones', [PublicacionController::class, 'store']);  // Crear nueva publicación
+    Route::put('/publicaciones/{id}', [PublicacionController::class, 'update']);  // Editar publicación
+    Route::delete('/publicaciones/{id}', [PublicacionController::class, 'destroy']);  // Eliminar publicación
+
+    // Rutas para comentarios
+    Route::post('/publicaciones/{id}/comentarios', [ComentarioController::class, 'store']);  // Agregar comentario
+    Route::get('/publicaciones/{id}/comentarios', [ComentarioController::class, 'index']);  // Obtener comentarios de una publicación
 });
-// Recetas
-Route::get('/recetas',      [RecetaController::class, 'index']);
+
+// Rutas públicas (accesibles sin autenticación)
+Route::get('/recetas', [RecetaController::class, 'index']);
 Route::get('/recetas/{id}', [RecetaController::class, 'show']);
 
 // Recuperación de contraseña
-Route::post('/recuperar-password/enviar-codigo',    [PasswordResetController::class, 'enviarCodigo']);
+Route::post('/recuperar-password/enviar-codigo', [PasswordResetController::class, 'enviarCodigo']);
 Route::post('/recuperar-password/verificar-codigo', [PasswordResetController::class, 'verificarCodigo']);
-Route::post('/recuperar-password/cambiar',          [PasswordResetController::class, 'cambiarPassword']);
-
-Route::middleware('auth:sanctum')->get('/publicaciones', [PublicacionController::class, 'index']);
-
-//Rutas para Comentarios y Publicaciones:
-Route::middleware('auth:sanctum')->group(function () {
-    // Obtener los comentarios de una publicación
-    Route::middleware('auth:sanctum')->get('/publicaciones', [PublicacionController::class, 'index']);
-    
-    // Agregar un comentario a una publicación
-    Route::post('/publicaciones/{id}/comentarios', [ComentarioController::class, 'store']);
-});
-
-//Rutas para Publicaciones:
-Route::get('/publicaciones', [PublicacionController::class, 'index']);
-Route::get('/publicaciones/{id}', [PublicacionController::class, 'show']);
-Route::middleware('auth:sanctum')->post('/publicaciones', [PublicacionController::class, 'store']);
-Route::middleware('auth:sanctum')->put('/publicaciones/{id}', [PublicacionController::class, 'update']);
-Route::middleware('auth:sanctum')->delete('/publicaciones/{id}', [PublicacionController::class, 'destroy']);
+Route::post('/recuperar-password/cambiar', [PasswordResetController::class, 'cambiarPassword']);
