@@ -7,6 +7,7 @@ use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Api\PublicacionController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -37,10 +38,12 @@ Route::post('/recuperar-password/enviar-codigo',    [PasswordResetController::cl
 Route::post('/recuperar-password/verificar-codigo', [PasswordResetController::class, 'verificarCodigo']);
 Route::post('/recuperar-password/cambiar',          [PasswordResetController::class, 'cambiarPassword']);
 
+Route::middleware('auth:sanctum')->get('/publicaciones', [PublicacionController::class, 'index']);
+
 //Rutas para Comentarios y Publicaciones:
 Route::middleware('auth:sanctum')->group(function () {
     // Obtener los comentarios de una publicación
-    Route::get('/publicaciones/{id}/comentarios', [ComentarioController::class, 'index']);
+    Route::middleware('auth:sanctum')->get('/publicaciones', [PublicacionController::class, 'index']);
     
     // Agregar un comentario a una publicación
     Route::post('/publicaciones/{id}/comentarios', [ComentarioController::class, 'store']);

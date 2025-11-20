@@ -12,6 +12,7 @@ class SocialScreen extends StatefulWidget {
 }
 
 class _SocialScreenState extends State<SocialScreen> {
+  
   List<Publicacion> publicaciones = [];
   bool _isLoading = true;
   String errorMessage = '';  // En caso de error
@@ -34,6 +35,7 @@ class _SocialScreenState extends State<SocialScreen> {
       setState(() {
         _isLoading = false;
         errorMessage = 'Error al cargar publicaciones: $e'; // Muestra el error
+        
       });
     }
   }
@@ -103,4 +105,5 @@ class _SocialScreenState extends State<SocialScreen> {
       ),
     );
   }
+  
 }
