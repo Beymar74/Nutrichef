@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'asistente_cocina.dart'; 
-import 'receta_model.dart'; 
+import 'receta_model.dart';
+import 'asistente_voz_modal.dart';
 
 class DetallesRecetaScreen extends StatelessWidget {
   final Map<String, dynamic> receta;
@@ -92,7 +93,7 @@ class DetallesRecetaScreen extends StatelessWidget {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            _navegarAAsistenteCocina(context);
+            _mostrarModalAsistenteVoz(context);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFF8C00),
@@ -127,16 +128,34 @@ class DetallesRecetaScreen extends StatelessWidget {
     );
   }
 
-  void _navegarAAsistenteCocina(BuildContext context) {
+  void _mostrarModalAsistenteVoz(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return VoiceAssistantModal(
+          onDecision: (bool activarVoz) {
+            _navegarAAsistenteCocina(context, activarVoz);
+          },
+        );
+      },
+    );
+  }
+
+  void _navegarAAsistenteCocina(BuildContext context, bool conAsistenteVoz) {
     final recetaObj = Receta.fromJson(receta);
     
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AsistenteCocinaScreen(receta: recetaObj),
+        builder: (context) => AsistenteCocinaScreen(
+          receta: recetaObj,
+          conAsistenteVoz: conAsistenteVoz,
+        ),
       ),
     );
   }
+
   Widget _buildMainVideo() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

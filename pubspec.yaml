@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.0.2
+  permission_handler: ^11.0.1
   
   # Firebase & Authentication
   google_sign_in: ^6.1.0

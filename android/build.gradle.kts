@@ -4,8 +4,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // 👇 Agrega este classpath para habilitar Google Services
         classpath("com.google.gms:google-services:4.4.2")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
+        classpath("com.android.tools.build:gradle:8.1.0")
     }
 }
 
@@ -23,6 +24,7 @@ subprojects {
     val newSubprojectBuildDir = newBuildDir.dir(project.name)
     project.layout.buildDirectory.set(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
