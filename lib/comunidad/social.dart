@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/publicaciones_service.dart';  // Servicio para obtener publicaciones
 import '../models/publicacion_model.dart'; // El modelo para la publicación
 import 'detalles_publicacion.dart';  // Detalles de cada publicación
+import 'nueva_publicacion.dart'; // Pantalla para crear una nueva publicación
 
 class SocialScreen extends StatefulWidget {
   const SocialScreen({Key? key}) : super(key: key);
@@ -32,15 +33,17 @@ class _SocialScreenState extends State<SocialScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        errorMessage = 'Error al cargar publicaciones';
+        errorMessage = 'Error al cargar publicaciones: $e'; // Muestra el error
       });
     }
   }
 
-  // Navegar a la pantalla de creación de publicación (si se desea)
+  // Navegar a la pantalla de creación de publicación
   void _navegarACrearPublicacion() {
-    // Aquí puedes implementar la lógica para permitir al usuario crear una nueva publicación
-    // Ejemplo: Navigator.push(context, MaterialPageRoute(builder: (_) => CrearPublicacionScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NuevaPublicacionScreen()), // Navegas a crear publicación
+    );
   }
 
   @override
@@ -86,7 +89,7 @@ class _SocialScreenState extends State<SocialScreen> {
                         trailing: IconButton(
                           icon: const Icon(Icons.favorite_border),
                           onPressed: () {
-                            // Implementar lógica para dar "me gusta" a la publicación
+                            // Lógica para dar "me gusta" a la publicación
                           },
                         ),
                       ),
