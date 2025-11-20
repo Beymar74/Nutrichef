@@ -36,3 +36,19 @@ Route::get('/recetas/{id}', [RecetaController::class, 'show']);
 Route::post('/recuperar-password/enviar-codigo',    [PasswordResetController::class, 'enviarCodigo']);
 Route::post('/recuperar-password/verificar-codigo', [PasswordResetController::class, 'verificarCodigo']);
 Route::post('/recuperar-password/cambiar',          [PasswordResetController::class, 'cambiarPassword']);
+
+//Rutas para Comentarios y Publicaciones:
+Route::middleware('auth:sanctum')->group(function () {
+    // Obtener los comentarios de una publicación
+    Route::get('/publicaciones/{id}/comentarios', [ComentarioController::class, 'index']);
+    
+    // Agregar un comentario a una publicación
+    Route::post('/publicaciones/{id}/comentarios', [ComentarioController::class, 'store']);
+});
+
+//Rutas para Publicaciones:
+Route::get('/publicaciones', [PublicacionController::class, 'index']);
+Route::get('/publicaciones/{id}', [PublicacionController::class, 'show']);
+Route::middleware('auth:sanctum')->post('/publicaciones', [PublicacionController::class, 'store']);
+Route::middleware('auth:sanctum')->put('/publicaciones/{id}', [PublicacionController::class, 'update']);
+Route::middleware('auth:sanctum')->delete('/publicaciones/{id}', [PublicacionController::class, 'destroy']);
