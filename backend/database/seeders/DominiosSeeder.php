@@ -4,13 +4,13 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DominiosSeeder extends Seeder
 {
     public function run(): void
     {
-        $now = now()->format('Y-m-d H:i:s');
-
+        // Lista maestra de dominios
         $dominios = [
             'ESTADO_RECETA',
             'ESTADO_PUBLICACION',
@@ -23,18 +23,37 @@ class DominiosSeeder extends Seeder
             'TIPO_REACCION',
         ];
 
-        foreach ($dominios as $descripcion) {
-            // Evita duplicados si se vuelve a ejecutar
-            $exists = DB::table('dominios')
-                ->where('descripcion', $descripcion)
-                ->exists();
+        $now = Carbon::now();
 
-            if (!$exists) {
-                DB::table('dominios')->insert([
-                    'descripcion' => $descripcion,
-                    'created_at'  => $now,
-                    'updated_at'  => $now,
-                ]);
+        foreach ($dominios as $descripcion) {
+            // updateOrInsert: Busca por 'descripcion'. 
+            // Si existe, actualiza 'updated_at'. Si no, crea con 'created_at'.
+            DB::table('dominios')->updateOrInsert(
+                ['descripcion' => $descripcion], // Condición de búsqueda
+                [
+                    'created_at' => $now, // Solo se usa al crear (por defecto en Eloquent, pero explícito aquí)
+                    'updated_at' => $now  // Se actualiza siempre
+                ]
+            );
+        }
+        
+        // --- SEGUNDA PARTE: SUBDOMINIOS (Opcional pero recomendado) ---
+        // Si quieres llenar los valores de una vez, puedes agregarlos aquí.
+        // Ejemplo para ESTADO_RECETA:
+        
+        $idEstadoReceta = DB::table('dominios')->where('descripcion', 'ESTADO_RECETA')->value('id');
+        
+        if ($idEstadoReceta) {
+            $estados = ['BORRADOR', 'PUBLICADA', 'OCULTA', 'ELIMINADA', 'PENDIENTE'];
+            
+            foreach ($estados as $estado) {
+                DB::table('subdominios')->updateOrInsert(
+                    [
+                        'id_dominio' => $idEstadoReceta,
+                        'descripcion' => $estado
+                    ],
+                    ['updated_at' => $now, 'created_at' => $now]
+                );
             }
         }
     }
