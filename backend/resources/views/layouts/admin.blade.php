@@ -62,9 +62,7 @@
                 <div class="flex items-center gap-3">
                     <!-- Logo personalizado -->
                     <div class="bg-white p-1 rounded-lg shadow-sm w-8 h-8 flex items-center justify-center overflow-hidden">
-                        <!-- Usamos un icono por defecto si la imagen no carga -->
                         <i data-lucide="utensils" class="text-ambar-800 w-5 h-5"></i>
-                        {{-- <img src="{{ asset('img/logo.png') }}" alt="Logo" class="w-full h-full object-contain"> --}}
                     </div>
                     <span class="text-lg font-bold tracking-wide text-white">NutriChef</span>
                 </div>
@@ -83,7 +81,7 @@
                     <span>Dashboard</span>
                 </a>
 
-                <!-- Usuarios (CONECTADO) -->
+                <!-- Usuarios -->
                 <a href="{{ route('admin.usuarios.index') }}" 
                    class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
                    {{ request()->routeIs('admin.usuarios.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
@@ -93,7 +91,7 @@
 
                 <p class="px-4 text-xs font-bold text-ambar-200 uppercase tracking-wider mb-2 mt-6">Gestión</p>
 
-                <!-- Recetas (CONECTADO) -->
+                <!-- Recetas -->
                 <a href="{{ route('admin.recetas.index') }}" 
                    class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
                    {{ request()->routeIs('admin.recetas.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
@@ -101,17 +99,30 @@
                     <span class="font-medium">Recetas</span>
                 </a>
 
+                <!-- Comentarios -->
+                <a href="{{ route('admin.comentarios.index') }}" 
+                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                   {{ request()->routeIs('admin.comentarios.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
+                    <i data-lucide="message-square" class="w-5 h-5 {{ request()->routeIs('admin.comentarios.*') ? '' : 'group-hover:text-calabaza-500 transition-colors' }}"></i>
+                    <span>Comentarios</span>
+                </a>
+                
                 <!-- Planificación -->
-                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-ambar-50 hover:bg-ambar-900/50 hover:text-white rounded-lg transition-all group">
-                    <i data-lucide="calendar" class="w-5 h-5 group-hover:text-calabaza-500 transition-colors"></i>
+                <a href="{{ route('admin.planificacion.index') }}" 
+                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                   {{ request()->routeIs('admin.planificacion.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
+                    <i data-lucide="calendar" class="w-5 h-5 {{ request()->routeIs('admin.planificacion.*') ? '' : 'group-hover:text-calabaza-500 transition-colors' }}"></i>
                     <span>Planificación</span>
                 </a>
 
                 <!-- Configuración -->
-                <a href="#" class="flex items-center gap-3 px-4 py-2.5 text-ambar-50 hover:bg-ambar-900/50 hover:text-white rounded-lg transition-all group">
-                    <i data-lucide="settings" class="w-5 h-5 group-hover:text-calabaza-500 transition-colors"></i>
+                <a href="{{ route('admin.configuracion.index') }}" 
+                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                   {{ request()->routeIs('admin.configuracion.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
+                    <i data-lucide="settings" class="w-5 h-5 {{ request()->routeIs('admin.configuracion.*') ? '' : 'group-hover:text-calabaza-500 transition-colors' }}"></i>
                     <span>Configuración</span>
                 </a>
+
             </nav>
 
             <!-- Pie del Sidebar -->

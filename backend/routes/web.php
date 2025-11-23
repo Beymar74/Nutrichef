@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\RecetaController;
 use App\Http\Controllers\Auth\LoginController; 
 use App\Http\Controllers\Admin\UsuarioController; 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ComentarioController;
+use App\Http\Controllers\Admin\PlanificacionController;
+use App\Http\Controllers\Admin\ConfiguracionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,8 +32,7 @@ Route::redirect('/', '/login');
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     // --- DASHBOARD ---
-    // CORRECCIÓN: Cambiado de '/admin/dashboard' a '/dashboard'
-    // Al estar dentro del prefix('admin'), la ruta final será /admin/dashboard
+    // Correcto: Solo '/dashboard', el prefijo 'admin' ya lo pone el grupo
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // --- GESTIÓN DE RECETAS ---
@@ -44,14 +46,22 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     // --- GESTIÓN DE USUARIOS ---
     Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
-    
-    // Rutas de creación (siempre antes de {id})
     Route::get('/usuarios/create', [UsuarioController::class, 'create'])->name('usuarios.create');
     Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
-
-    // Rutas de detalle y edición
     Route::get('/usuarios/{id}', [UsuarioController::class, 'show'])->name('usuarios.show');
     Route::patch('/usuarios/{id}/toggle', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle');
     Route::get('/usuarios/{id}/edit', [UsuarioController::class, 'edit'])->name('usuarios.edit');
     Route::put('/usuarios/{id}', [UsuarioController::class, 'update'])->name('usuarios.update');
+
+    // --- PLANIFICACIÓN (FALTABA ESTO) ---
+    Route::get('/planificacion', [PlanificacionController::class, 'index'])->name('planificacion.index');
+
+    // --- CONFIGURACIÓN (FALTABA ESTO) ---
+    Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');
+    Route::post('/configuracion/subdominio', [ConfiguracionController::class, 'storeSubdominio'])->name('configuracion.subdominio.store');
+    Route::delete('/configuracion/subdominio/{id}', [ConfiguracionController::class, 'destroySubdominio'])->name('configuracion.subdominio.destroy');
+
+    // --- GESTIÓN DE COMENTARIOS ---
+    Route::get('/comentarios', [ComentarioController::class, 'index'])->name('comentarios.index');
+    Route::patch('/comentarios/{id}/{accion}', [ComentarioController::class, 'moderar'])->name('comentarios.moderar');
 });
