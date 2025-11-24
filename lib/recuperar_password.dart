@@ -33,8 +33,8 @@ class _RecuperarPasswordState extends State<RecuperarPassword> {
 
     try {
       final url = Uri.parse(
-        //"http://10.0.2.2:18000/api/recuperar-password/enviar-codigo",
-        "http://172.172.8.71:18000/api/recuperar-password/enviar-codigo",
+        //"http://10.0.2.2:18000/api/recuperar-password/enviar-codigo", - IP EMI
+        "http://192.168.0.51:18000/api/recuperar-password/enviar-codigo",// IP CASA
       );
 
       final response = await http.post(
