@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'inicio.dart';
+import 'comunidad/services/comunidad_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +20,13 @@ void main() async {
     print('Stack trace: $stack');
   }
 
-  runApp(const NutriChefApp());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => ComunidadService()),
+    ],
+    child: const NutriChefApp(),
+  ),
+);
 }
 
 class NutriChefApp extends StatelessWidget {

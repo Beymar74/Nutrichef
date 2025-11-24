@@ -8,12 +8,13 @@ use App\Http\Controllers\Controller;
 
 class PublicacionController extends Controller
 {
+    // Método para obtener las publicaciones
     public function index()
     {
-        // Obtener todas las publicaciones con sus relaciones (usuario, receta, etc.)
-        $publicaciones = Publicacion::with(['usuario', 'receta', 'estado', 'comentarios', 'reacciones', 'calificaciones'])->get();
+        // Obtén todas las publicaciones
+        $publicaciones = Publicacion::all();
 
-        // Devolver las publicaciones en formato JSON
+        // Devolvemos las publicaciones en formato JSON
         return response()->json([
             'success' => true,
             'data' => $publicaciones

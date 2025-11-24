@@ -6,10 +6,11 @@ import '../../perfil_view.dart';
 import '../../recetas.dart';
 import 'home_content.dart';
 import 'widgets/custom_bottom_nav.dart';
+import '/comunidad/screens/feed_comunidad.dart';
+
 
 // --- IMPORTANTE: Importa tu módulo de IA ---
-import '../../ia/screens/ia_inicio_page.dart'; 
-
+import '../../ia/screens/ia_inicio_page.dart';
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
   
@@ -131,9 +132,11 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
 
       case 1:
-        // TODO: Implementar chat
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const FeedComunidadScreen()),
+        );
         break;
-
       case 2:
         Navigator.push(
           context,

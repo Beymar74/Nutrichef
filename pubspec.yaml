@@ -30,6 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    
+  provider: ^6.0.5 #por reyshel
+
   flutter_localizations:
     sdk: flutter
   speech_to_text: ^7.0.0

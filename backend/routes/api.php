@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\IAController;
+use App\Http\Controllers\Api\PublicacionController;
+
+
 
 Route::get('/test', function () {
     return response()->json([
@@ -44,3 +47,6 @@ Route::post('/buscar-recetas', [IAController::class, 'buscarPorIngredientes']);
 // Listados auxiliares
 Route::get('/ingredientes/listar', [IAController::class, 'listarIngredientes']);
 Route::get('/unidades/listar', [IAController::class, 'listarUnidades']);
+
+//Publicaciones
+Route::middleware('auth:sanctum')->get('/publicaciones', [PublicacionController::class, 'index']);
