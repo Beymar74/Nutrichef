@@ -13,15 +13,12 @@ class IngredientSeeder extends Seeder
         $now = Carbon::now();
         
         $ingredientesConIA = [
-            // --- FRUTAS Y VERDURAS (Ingredientes Reales) ---
+            // --- FRUTAS Y VERDURAS
             ['descripcion' => 'Manzana',          'yolo_key' => 'apple'],
             ['descripcion' => 'Banano/Plátano',   'yolo_key' => 'banana'],
             ['descripcion' => 'Naranja',          'yolo_key' => 'orange'],
             ['descripcion' => 'Brócoli',          'yolo_key' => 'broccoli'],
             ['descripcion' => 'Zanahoria',        'yolo_key' => 'carrot'],
-
-            // --- UTENSILIOS Y RECIPIENTES ---
-            ['descripcion' => 'Botella',          'yolo_key' => 'bottle'],
         
         ];
 

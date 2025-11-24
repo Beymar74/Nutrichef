@@ -19,12 +19,12 @@ class IAController extends Controller
         $stream = fopen($imagen->getRealPath(), 'r');
 
         try {
-            // 2. Enviar a Python (YOLO)
+            // 2. Enviar a Python (YOLO + OCR)
             $response = Http::attach(
                 'file', 
                 $stream, 
                 $imagen->getClientOriginalName()
-            )->post('http://host.docker.internal:5000/detectar');
+            )->post('http://host.docker.internal:5000/detectar'); // Ojo: puerto 5000
 
             if (!$response->successful()) {
                 return response()->json([
@@ -34,39 +34,105 @@ class IAController extends Controller
                 ], 500);
             }
 
-            // 3. Procesar y Traducir la respuesta
+            // 3. Obtener respuesta cruda (Ahora tiene 'visual' y 'etiquetas')
             $rawData = $response->json();
             
-            if (!isset($rawData['data'])) {
+            // Validación de estructura nueva
+            if (!isset($rawData['data']) || !isset($rawData['data']['visual'])) {
+                // Fallback por si acaso el script de python viejo sigue corriendo
                 return response()->json($rawData);
             }
 
             $ingredientesTraducidos = [];
+            $idsDetectados = []; // Para evitar duplicados exactos si YOLO y OCR encuentran lo mismo
 
-            foreach ($rawData['data'] as $item) {
-                $nombreIngles = $item['ingrediente']; // Ej: "baseball bat"
+            // ==========================================
+            // PARTE A: PROCESAMIENTO VISUAL (YOLO)
+            // ==========================================
+            foreach ($rawData['data']['visual'] as $item) {
+                $nombreIngles = $item['ingrediente']; 
 
-                // BUSCAR EN LA BDD
                 $ingredienteBD = DB::table('ingredientes')
                                     ->where('yolo_key', $nombreIngles)
                                     ->first();
 
-                // --- FILTRO DE SEGURIDAD ---
-                // Si la base de datos NO tiene registrado este 'yolo_key',
-                // significa que es un objeto basura (bate, persona, etc.) -> LO IGNORAMOS.
-                if (!$ingredienteBD) {
-                    continue; // Salta a la siguiente iteración del bucle
+                if ($ingredienteBD) {
+                    $ingredientesTraducidos[] = [
+                        'nombre_original' => $nombreIngles, // Ej: "bottle"
+                        'nombre' => $ingredienteBD->descripcion, // Ej: "Aceite"
+                        'cantidad' => $item['cantidad'],
+                        'unidad' => $item['unidad_estimada']
+                    ];
+                    $idsDetectados[] = $ingredienteBD->id;
                 }
-
-                // Si llegamos aquí, es un ingrediente válido de tu sistema
-                $ingredientesTraducidos[] = [
-                    'nombre_original' => $nombreIngles,
-                    'nombre' => $ingredienteBD->descripcion, // Ej: "Manzana"
-                    'cantidad' => $item['cantidad'],
-                    'unidad' => $item['unidad_estimada']
-                ];
             }
 
+            // ==========================================
+            // PARTE B: PROCESAMIENTO DE TEXTO (OCR)
+            // ==========================================
+            // Traemos todos los alias de la BDD para comparar (optimización de consulta)
+            $aliasBDD = DB::table('nombres_comerciales')
+                          ->join('ingredientes', 'nombres_comerciales.id_ingrediente', '=', 'ingredientes.id')
+                          ->select('nombres_comerciales.nombre_comercial', 'ingredientes.descripcion', 'ingredientes.id as id_real')
+                          ->get();
+
+            $etiquetasLeidas = $rawData['data']['etiquetas'] ?? [];
+
+            foreach ($etiquetasLeidas as $textoOcr) {
+                // Convertimos lo leído a minúsculas por seguridad (aunque Python ya lo hace)
+                $textoOcr = strtolower($textoOcr); 
+
+                foreach ($aliasBDD as $alias) {
+                    $nombreMarca = $alias->nombre_comercial; // Ya está en minúsculas en BDD
+
+                    // LÓGICA DE COINCIDENCIA (MATCHING)
+                    $esMatch = false;
+
+                    // 1. Coincidencia de subcadena (Ej: "peso neto arroz grano de oro" contiene "grano de oro")
+                    if (str_contains($textoOcr, $nombreMarca)) {
+                        $esMatch = true;
+                    } 
+                    // 2. Coincidencia Fuzzy del 75% (Ej: "grno de oro" vs "grano de oro")
+                    else {
+                        $porcentaje = 0;
+                        similar_text($textoOcr, $nombreMarca, $porcentaje);
+                        if ($porcentaje >= 75) {
+                            $esMatch = true;
+                        }
+                    }
+
+                    // Si hubo match y no hemos agregado este ingrediente EXACTO en este ciclo de OCR (opcional: o de YOLO)
+                    // Nota: Aquí permito que se repita si YOLO lo vio y OCR también, para reforzar la detección.
+                    // Si prefieres que no se repita nunca, usa in_array($alias->id_real, $idsDetectados)
+                    if ($esMatch) {
+                        
+                        // Verificar si ya agregamos este mismo ingrediente por OCR en esta petición para no repetir 
+                        // "Arroz" 5 veces porque la etiqueta dice "Grano de oro" 5 veces.
+                        $yaEstaEnLista = false;
+                        foreach($ingredientesTraducidos as $ing){
+                            if($ing['nombre'] === $alias->descripcion && $ing['nombre_original'] === 'detectado_por_texto'){
+                                $yaEstaEnLista = true;
+                                break;
+                            }
+                        }
+
+                        if(!$yaEstaEnLista){
+                            $ingredientesTraducidos[] = [
+                                'nombre_original' => 'Etiqueta: ' . $textoOcr, // Para que sepas de dónde vino
+                                'nombre' => $alias->descripcion, // Ej: "Arroz" (El nombre real)
+                                'cantidad' => 1,
+                                'unidad' => 'unidad(es)'
+                            ];
+                            // Rompemos el bucle de alias para este texto OCR, ya encontramos qué es.
+                            break; 
+                        }
+                    }
+                }
+            }
+
+            // ==========================================
+            // RESPUESTA FINAL (FORMATO ORIGINAL)
+            // ==========================================
             return response()->json([
                 'success' => true,
                 'ingredientes' => $ingredientesTraducidos

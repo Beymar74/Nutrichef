@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RecetasSeeder::class,
             RecetasdosSeeder::class,
             IngredientSeeder::class,
+            NombresComercialesSeeder::class,
         ]);
     }
 }
