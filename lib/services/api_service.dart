@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // URL base: apunta al backend Laravel (Docker puerto 18000)
   //static const String baseUrl = 'http://10.0.2.2:18000/api'; - IP EMI
-  static const String baseUrl = 'http://192.168.0.5:18000/api'; // IP CASA
+  static const String baseUrl = 'http://192.168.0.5/api'; // IP CASA
 
   static Future<Map<String, dynamic>> register({
     required String nombres,

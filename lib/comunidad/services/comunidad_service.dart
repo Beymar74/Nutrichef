@@ -13,7 +13,7 @@ class ComunidadService extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.0.5:18000/api/publicaciones'), // Endpoint de publicaciones
+        Uri.parse('http://192.168.0.5/api/publicaciones'), // Endpoint de publicaciones
         headers: {
           'Authorization': 'Bearer $token', // Autenticación con token
           'Accept': 'application/json', // Aceptamos JSON como respuesta
