@@ -90,122 +90,49 @@ Future<void> _iniciarSesion() async {
 
   // 🔹 LOGIN CON GOOGLE
   Future<void> _loginConGoogle() async {
-    final authService = AuthService();
-    final user = await authService.signInWithGoogle();
+  final authService = AuthService();
 
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inicio de sesión cancelado o fallido'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  // 🔥 Nuevo login con Google → Firebase → Backend
+  final data = await authService.loginWithGoogle();
 
-    final email = user.email ?? '';
-    final nombreCompleto = user.displayName ?? 'Usuario Google';
-    final foto = user.photoURL ?? '';
-
-    // 🔸 Verificar si ya existe en tu base de datos
-    final verificar = await ApiService.verificarUsuarioGoogle(email);
-
-    if (verificar['success'] == true && verificar['existe'] == true) {
-      // ✅ Usuario ya registrado → iniciar sesión
-      final usuario = verificar['usuario'] ?? {};
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bienvenido de nuevo 👋'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // 🔹 REDIRECCIÓN SEGÚN ROL PARA GOOGLE
-      final idRol = usuario['id_rol'];
-      
-      print('🔍 DEBUG Google - ID del rol: $idRol');
-      print('🔍 DEBUG Google - Tipo: ${idRol.runtimeType}');
-      
-      // Convertir a int si viene como String
-      final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
-      
-      if (rolNumerico == 2) {
-        // ROL CHEF → Redirigir a HomeChef
-        print('✅ Google: Redirigiendo a HomeChef');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
-        );
-      } else {
-        // ROL USUARIO NORMAL → Redirigir a Home
-        print('✅ Google: Redirigiendo a Home (usuario normal)');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
-        );
-      }
-    } else {
-      // 🔹 Si no existe → registrar en base de datos
-      final partesNombre = nombreCompleto.split(' ');
-      final nombres = partesNombre.isNotEmpty ? partesNombre.first : nombreCompleto;
-      final apellido = partesNombre.length > 1 ? partesNombre.last : '';
-
-      final registro = await ApiService.registrarUsuarioGoogle(
-        nombres: nombres,
-        apellidoPaterno: apellido,
-        email: email,
-        foto: foto,
-      );
-
-      if (registro['success'] == true) {
-        final usuario = registro['usuario'] ?? {
-          'nombres': nombres,
-          'email': email,
-          'foto': foto,
-        };
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cuenta creada con Google ✅'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // 🔹 REDIRECCIÓN SEGÚN ROL PARA NUEVO USUARIO GOOGLE
-        final idRol = usuario['id_rol'];
-        
-        print('🔍 DEBUG Google Nuevo - ID del rol: $idRol');
-        print('🔍 DEBUG Google Nuevo - Tipo: ${idRol.runtimeType}');
-        
-        // Convertir a int si viene como String
-        final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
-        
-        if (rolNumerico == 2) {
-          // ROL CHEF → Redirigir a HomeChef
-          print('✅ Google Nuevo: Redirigiendo a HomeChef');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
-          );
-        } else {
-          // ROL USUARIO NORMAL → Redirigir a Home
-          print('✅ Google Nuevo: Redirigiendo a Home (usuario normal)');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(registro['message'] ?? 'Error al registrar usuario'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  if (data['success'] != true) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(data['message'] ?? 'Error al iniciar sesión con Google'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
   }
+
+  final usuario = data['usuario'];
+  final token = data['token'];
+
+  usuario['token'] = token;
+
+  // Rol
+  final idRol = usuario['id_rol'];
+  final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
+
+  if (rolNumerico == 2) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
+    );
+  } else {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
+    );
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Inicio de sesión con Google exitoso'),
+      backgroundColor: Colors.green,
+    ),
+  );
+}
 
   void _registrarse() {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const Registro()));

@@ -21,6 +21,7 @@ Route::get('/test', function () {
 // Autenticación
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
+Route::post('/google/login', [AuthController::class, 'googleLogin']);
 
 // Rutas protegidas
 Route::middleware('auth:sanctum')->group(function () {

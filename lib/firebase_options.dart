@@ -63,6 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '318113582455',
     projectId: 'nutrichef-406c9',
     storageBucket: 'nutrichef-406c9.firebasestorage.app',
+    androidClientId: '318113582455-ah315ib6h8v5mg9fndmg5dqkhsh2nvfs.apps.googleusercontent.com',
     iosBundleId: 'com.example.nutrichef',
   );
 
@@ -72,6 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '318113582455',
     projectId: 'nutrichef-406c9',
     storageBucket: 'nutrichef-406c9.firebasestorage.app',
+    androidClientId: '318113582455-ah315ib6h8v5mg9fndmg5dqkhsh2nvfs.apps.googleusercontent.com',
     iosBundleId: 'com.example.nutrichef',
   );
 
@@ -83,4 +85,5 @@ class DefaultFirebaseOptions {
     authDomain: 'nutrichef-406c9.firebaseapp.com',
     storageBucket: 'nutrichef-406c9.firebasestorage.app',
   );
+
 }

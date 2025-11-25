@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Google_Client;
 
 class AuthController extends Controller
 {
@@ -128,4 +129,70 @@ class AuthController extends Controller
             "message"  => "Perfil actualizado correctamente",
         ]);
     }
+    public function googleLogin(Request $request)
+{
+    $idToken = $request->input('id_token');
+
+    if (!$idToken) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No se recibió id_token'
+        ], 400);
+    }
+
+    // Validar token recibido desde Firebase
+    $client = new Google_Client(['client_id' => env('GOOGLE_CLIENT_ID')]);
+    $payload = $client->verifyIdToken($idToken);
+
+    if (!$payload) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Token inválido'
+        ], 401);
+    }
+
+    // Datos enviados por Google
+    $email          = $payload['email'];
+    $nombreCompleto = $payload['name'];
+    $fotoGoogle     = $payload['picture'] ?? null;
+
+    // Verificar si el usuario ya existe
+    $usuario = Usuario::where('email', $email)->first();
+
+    if (!$usuario) {
+        // Registrar si no existe
+
+        $partes = explode(' ', $nombreCompleto);
+
+        $persona = Persona::create([
+            'nombres'           => $partes[0] ?? '',
+            'apellido_paterno'  => $partes[1] ?? '',
+            'apellido_materno'  => $partes[2] ?? '',
+            'telefono'          => null,
+            'fecha_nacimiento'  => null,
+            'foto'              => $fotoGoogle
+        ]);
+
+        // Crear nombre corto automático
+        $username = strtolower(substr($partes[0], 0, 2) . substr($partes[1] ?? 'x', 0, 2));
+
+        $usuario = Usuario::create([
+            'id_rol'            => 4, // rol usuario normal
+            'id_persona'        => $persona->id,
+            'name'              => $username,
+            'email'             => $email,
+            'password'          => Hash::make(Str::random(16)), // contraseña aleatoria
+            'descripcion_perfil'=> null
+        ]);
+    }
+
+    // Crear token Sanctum
+    $token = $usuario->createToken('googleLogin')->plainTextToken;
+
+    return response()->json([
+        'success' => true,
+        'token'   => $token,
+        'usuario' => $usuario->load('persona', 'rol')
+    ]);
+}
 }
