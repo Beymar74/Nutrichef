@@ -50,3 +50,12 @@ Route::get('/unidades/listar', [IAController::class, 'listarUnidades']);
 
 //Publicaciones
 Route::middleware('auth:sanctum')->get('/publicaciones', [PublicacionController::class, 'index']);
+// Ruta para obtener todas las publicaciones
+Route::get('/publicaciones', [PublicacionController::class, 'index']);
+// Ruta para agregar una reacción (like) a una publicación
+Route::post('/publicaciones/{id}/reaccion', [PublicacionController::class, 'darReaccion'])->middleware('auth:sanctum');
+// Ruta para eliminar una publicación
+Route::delete('/publicaciones/{id}', [PublicacionController::class, 'eliminarPublicacion'])->middleware('auth:sanctum');
+// Ruta para reportar una publicación
+Route::middleware('auth:sanctum')->post('/publicaciones/reportar/{id}', [PublicacionController::class, 'reportar']);
+

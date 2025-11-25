@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/comunidad_service.dart'; // Importar el servicio
-import '../models/publicacion_model.dart'; // Importar el modelo de Publicación
+import '../widgets/barra_reacciones.dart'; // Importamos el widget BarraReacciones
 
 class FeedComunidadScreen extends StatefulWidget {
   const FeedComunidadScreen({Key? key}) : super(key: key);
@@ -19,10 +19,81 @@ class _FeedComunidadScreenState extends State<FeedComunidadScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final comunidadService = Provider.of<ComunidadService>(context, listen: false);
       if (comunidadService.posts.isEmpty && !comunidadService.loading) {
-        // Se pasa el token real del usuario aquí
         comunidadService.cargarFeed('token'); // Asegúrate de pasar el token real del usuario
       }
     });
+  }
+
+  // Método para cargar comentarios
+  void _cargarComentarios(int idPublicacion) async {
+    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final token = 'token'; // Aquí deberías obtener el token real
+
+    await comunidadService.obtenerComentarios(idPublicacion, token); // Llamada a la función de comentarios
+  }
+
+  // Método para manejar la reacción de like
+  void _darReaccion(int idPublicacion) async {
+    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final token = 'token'; // Aquí deberías obtener el token real
+
+    final response = await comunidadService.darReaccion(idPublicacion, token);
+    if (response['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reacción agregada")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? "Error al agregar reacción")),
+      );
+    }
+  }
+
+  // Método para eliminar publicación
+  void _eliminarPublicacion(int idPublicacion) async {
+    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final token = 'token'; // Aquí deberías obtener el token real
+
+    final response = await comunidadService.eliminarPublicacion(idPublicacion, token);
+    if (response['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Publicación eliminada")),
+      );
+      // Recargar el feed después de eliminar
+      comunidadService.cargarFeed(token);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? "Error al eliminar publicación")),
+      );
+    }
+  }
+
+  // Método para editar publicación
+  void _editarPublicacion(int idPublicacion) {
+    // Aquí puedes agregar la lógica para navegar a una pantalla de edición de publicación
+    print('Editando publicación con ID: $idPublicacion');
+    // Navegar a la pantalla de edición, por ejemplo:
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (_) => EditarPublicacionScreen(id: idPublicacion)),
+    // );
+  }
+
+  // Método para reportar publicación
+  void _reportarPublicacion(int idPublicacion) async {
+    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final token = 'token'; // Aquí deberías obtener el token real
+
+    final response = await comunidadService.reportarPublicacion(idPublicacion, token);
+    if (response['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Publicación reportada")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? "Error al reportar publicación")),
+      );
+    }
   }
 
   @override
@@ -42,19 +113,14 @@ class _FeedComunidadScreenState extends State<FeedComunidadScreen> {
                   itemCount: comunidadService.posts.length,
                   itemBuilder: (context, index) {
                     final post = comunidadService.posts[index];
+                    _cargarComentarios(post['id']); // Cargar los comentarios para cada publicación
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                       child: ListTile(
-                        title: Text(post['titulo']), // Título de la publicación
-                        subtitle: Text(post['contenido']), // Contenido de la publicación
-                        trailing: IconButton(
-                          icon: const Icon(Icons.thumb_up), // Icono para reacciones
-                          onPressed: () {
-                            // Lógica para reaccionar (agregar un like)
-                            // Aquí puedes agregar la lógica para reaccionar
-                          },
-                        ),
+                        title: Text(post['titulo']),
+                        subtitle: Text(post['contenido']),
+                        trailing: BarraReacciones(idPublicacion: post['id']),
                       ),
                     );
                   },
