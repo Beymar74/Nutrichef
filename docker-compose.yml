@@ -1,4 +1,4 @@
-services: 
+services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -15,12 +15,12 @@ services:
     networks:
       - nutrichef_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nutrichef_user -d nutrichef"]
+      test: [ "CMD-SHELL", "pg_isready -U nutrichef_user -d nutrichef" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
- # Laravel API
+  # Laravel API
   laravel:
     build:
       context: .
@@ -30,7 +30,7 @@ services:
     working_dir: /var/www
     volumes:
       - ./backend:/var/www
-      - vendor_data:/var/www/vendor  # Protege vendor/ de ser sobrescrito
+      - vendor_data:/var/www/vendor
     ports:
       - "18000:8000"
     depends_on:
@@ -58,7 +58,8 @@ services:
     networks:
       - nutrichef_network
     command: sh -c "php artisan key:generate --force && mkdir -p storage/framework/{sessions,views,cache} storage/logs && chmod -R 777 storage bootstrap/cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
-  # Adminer con tema moderno
+
+  # Adminer
   adminer:
     image: adminer:latest
     container_name: nutrichef_adminer
@@ -73,7 +74,7 @@ services:
     networks:
       - nutrichef_network
 
-  # MinIO para imágenes
+  # MinIO
   minio:
     image: minio/minio:latest
     container_name: nutrichef_storage
@@ -90,7 +91,7 @@ services:
     networks:
       - nutrichef_network
 
-  # Redis para caché
+  # Redis
   redis:
     image: redis:7-alpine
     container_name: nutrichef_redis
@@ -102,7 +103,7 @@ services:
     networks:
       - nutrichef_network
 
-  # Elasticsearch para búsqueda
+  # Elasticsearch
   elasticsearch:
     image: elasticsearch:8.11.0
     container_name: nutrichef_search
@@ -118,6 +119,26 @@ services:
     networks:
       - nutrichef_network
 
+  # Nutrichef AI (Python service)
+  nutrichef_ai:
+    build:
+      context: ./backend/python_scripts
+      dockerfile: Dockerfile
+    container_name: nutrichef_ai
+    restart: unless-stopped
+    volumes:
+      - ./backend/python_scripts:/app
+    working_dir: /app
+    ports:
+      - "18090:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - nutrichef_network
+
 volumes:
   postgres_data:
     driver: local
@@ -127,7 +148,9 @@ volumes:
     driver: local
   elasticsearch_data:
     driver: local
-  vendor_data:  # ← NUEVO
+  vendor_data:
+    driver: local
+  python_models:
     driver: local
 
 networks:

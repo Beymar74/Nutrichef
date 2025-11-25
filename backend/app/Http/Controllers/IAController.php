@@ -19,12 +19,17 @@ class IAController extends Controller
         $stream = fopen($imagen->getRealPath(), 'r');
 
         try {
-            // 2. Enviar a Python (YOLO + OCR)
-            $response = Http::attach(
-                'file', 
-                $stream, 
-                $imagen->getClientOriginalName()
-            )->post('http://host.docker.internal:5000/detectar'); // Ojo: puerto 5000
+            // 2. Obtener URL de IA desde .env (con fallback)
+            $aiUrl = env('AI_URL', 'http://nutrichef_ai:5000');
+            
+            // 3. Enviar a Python (YOLO + OCR) con timeout apropiado
+            $response = Http::timeout(60) // 60 segundos para procesamiento de IA
+                ->attach(
+                    'file', 
+                    $stream, 
+                    $imagen->getClientOriginalName()
+                )
+                ->post($aiUrl . '/detectar');
 
             if (!$response->successful()) {
                 return response()->json([
@@ -34,7 +39,7 @@ class IAController extends Controller
                 ], 500);
             }
 
-            // 3. Obtener respuesta cruda (Ahora tiene 'visual' y 'etiquetas')
+            // 4. Obtener respuesta cruda (Ahora tiene 'visual' y 'etiquetas')
             $rawData = $response->json();
             
             // Validación de estructura nueva
