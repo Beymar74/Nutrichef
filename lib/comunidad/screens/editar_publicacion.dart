@@ -27,7 +27,7 @@ class _EditarPublicacionScreenState extends State<EditarPublicacionScreen> {
   // Método para cargar la publicación a editar
   Future<void> _cargarPublicacion() async {
     final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = 'tu_token_aqui'; // Aquí deberías usar el token real
+    final token = 'token'; // Aquí deberías usar el token real
 
     // Cargar los datos de la publicación por su ID
     await comunidadService.obtenerPublicacionPorId(widget.idPublicacion, token);
@@ -56,7 +56,7 @@ class _EditarPublicacionScreenState extends State<EditarPublicacionScreen> {
     });
 
     final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = 'tu_token_aqui'; // Aquí deberías usar el token real
+    final token = 'token'; // Aquí deberías usar el token real
 
     // Llamamos a la función para actualizar la publicación
     final response = await comunidadService.actualizarPublicacion(

@@ -5,7 +5,7 @@ import '../models/receta_model.dart';
 class RecetaService {
   // Para dispositivo físico usa la IP de tu PC:
   //static const String baseUrl = "http://172.174.2.19:18000/api"; //IP EMI
-    static const String baseUrl = 'http://192.168.0.51/api'; // IP CASA
+    static const String baseUrl = 'http://192.168.0.51:18000/api'; // IP CASA
   //static const String baseUrl = "laip";
   Future<List<Receta>> obtenerRecetas() async {
     try {

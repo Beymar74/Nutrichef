@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class PasswordService {
   //static const String baseUrl = "http://172.174.2.19:18000/api"; //IP EMI
-  static const String baseUrl = 'http://192.168.0.51/api'; // IP CASA
+  static const String baseUrl = 'http://192.168.0.51:18000/api'; // IP CASA
 
 
   static Future<Map<String, dynamic>> enviarCodigo(String email) async {

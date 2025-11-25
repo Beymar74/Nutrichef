@@ -132,11 +132,15 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
 
       case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const FeedComunidadScreen()),
-        );
-        break;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FeedComunidadScreen(
+            usuario: widget.usuario, // ✅ Pasar el usuario
+          ),
+        ),
+      );
+      break;
       case 2:
         Navigator.push(
           context,

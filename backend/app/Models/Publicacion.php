@@ -1,22 +1,52 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Models;
 
-use App\Models\Publicacion;
-use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class PublicacionController extends Controller
+class Publicacion extends Model
 {
-    public function index()
-    {
-        // Obtener todas las publicaciones con sus relaciones (usuario, receta, etc.)
-        $publicaciones = Publicacion::with(['usuario', 'receta', 'estado', 'comentarios', 'reacciones', 'calificaciones'])->get();
+    use HasFactory;
 
-        // Devolver las publicaciones en formato JSON
-        return response()->json([
-            'success' => true,
-            'data' => $publicaciones
-        ]);
+    protected $table = 'publicaciones';
+
+    protected $fillable = [
+        'descripcion',
+        'imagen',
+        'id_usuario',
+        'id_receta',
+        'id_estado',
+    ];
+
+    // ✅ CORRECCIÓN: Usar Usuario en lugar de User
+    public function usuario()
+    {
+        return $this->belongsTo(Usuario::class, 'id_usuario');
+    }
+
+    public function receta()
+    {
+        return $this->belongsTo(Receta::class, 'id_receta');
+    }
+
+    public function estado()
+    {
+        return $this->belongsTo(Estado::class, 'id_estado');
+    }
+
+    public function comentarios()
+    {
+        return $this->hasMany(Comentario::class, 'id_publicacion');
+    }
+
+    public function reacciones()
+    {
+        return $this->hasMany(Reaccion::class, 'id_publicacion');
+    }
+
+    public function calificaciones()
+    {
+        return $this->hasMany(Calificacion::class, 'id_publicacion');
     }
 }

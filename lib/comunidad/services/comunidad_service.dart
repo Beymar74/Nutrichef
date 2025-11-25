@@ -12,32 +12,45 @@ class ComunidadService extends ChangeNotifier {
     loading = true;
     notifyListeners();
 
+    print('🔍 === INICIANDO CARGA DE FEED ===');
+    print('🔑 Token recibido: $token');
+    print('📡 URL: http://192.168.0.5:18000/api/publicaciones');
+
     try {
-      final response = await http.get(
-        Uri.parse('http://192.168.0.5/api/publicaciones'), // Endpoint de publicaciones
-        headers: {
-          'Authorization': 'Bearer $token', // Autenticación con token
-          'Accept': 'application/json', // Aceptamos JSON como respuesta
-        },
-      );
+      final response = await http
+          .get(
+            Uri.parse('http://192.168.0.5:18000/api/publicaciones'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(Duration(seconds: 10));
+
+      print('📊 Status Code: ${response.statusCode}');
+      print('📄 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        posts = data['data']; // Asignamos las publicaciones a la lista
+        posts = data['data'] ?? [];
+        print('✅ Posts cargados: ${posts.length}');
       } else {
-        throw Exception('Error al cargar las publicaciones');
+        print('❌ Error HTTP: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error al obtener las publicaciones: $e');
+      print('❌ EXCEPCIÓN: $e');
     }
 
     loading = false;
     notifyListeners();
+    print('🏁 === FIN CARGA ===');
   }
 
   // Función para obtener los comentarios de una publicación
   Future<void> obtenerComentarios(int idPublicacion, String token) async {
-    final url = Uri.parse('http://192.168.0.5/api/publicaciones/$idPublicacion/comentarios'); // Ajusta la URL si es necesario
+    final url = Uri.parse(
+      'http://192.168.0.5:18000/api/publicaciones/$idPublicacion/comentarios',
+    ); // Ajusta la URL si es necesario
     try {
       final response = await http.get(
         url,
@@ -59,15 +72,21 @@ class ComunidadService extends ChangeNotifier {
   }
 
   // Método para dar reacción (like) a una publicación
-  Future<Map<String, dynamic>> darReaccion(int idPublicacion, String token) async {
-    final url = Uri.parse('http://192.168.0.5/api/publicaciones/$idPublicacion/reaccion'); // Asegúrate de que este sea el endpoint correcto en tu API
+  Future<Map<String, dynamic>> darReaccion(
+    int idPublicacion,
+    String token,
+  ) async {
+    final url = Uri.parse(
+      'http://192.168.0.5:18000/api/publicaciones/$idPublicacion/reaccion',
+    ); // Asegúrate de que este sea el endpoint correcto en tu API
     try {
       final response = await http.post(
         url,
         headers: {
           'Authorization': 'Bearer $token', // Autenticación con token
           'Accept': 'application/json',
-          'Content-Type': 'application/json', // Especificamos que estamos enviando JSON
+          'Content-Type':
+              'application/json', // Especificamos que estamos enviando JSON
         },
         body: json.encode({
           'reaccion': 'like', // O el tipo de reacción que estés manejando
@@ -86,8 +105,13 @@ class ComunidadService extends ChangeNotifier {
   }
 
   // Función para eliminar una publicación
-  Future<Map<String, dynamic>> eliminarPublicacion(int idPublicacion, String token) async {
-    final url = Uri.parse('http://192.168.0.5/api/publicaciones/$idPublicacion'); // URL para eliminar publicación
+  Future<Map<String, dynamic>> eliminarPublicacion(
+    int idPublicacion,
+    String token,
+  ) async {
+    final url = Uri.parse(
+      'http://192.168.0.5:18000/api/publicaciones/$idPublicacion',
+    ); // URL para eliminar publicación
 
     try {
       final response = await http.delete(
@@ -99,7 +123,10 @@ class ComunidadService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Publicación eliminada correctamente'};
+        return {
+          'success': true,
+          'message': 'Publicación eliminada correctamente',
+        };
       } else {
         return {'success': false, 'message': 'Error al eliminar publicación'};
       }
@@ -110,8 +137,13 @@ class ComunidadService extends ChangeNotifier {
   }
 
   // Función para reportar publicación
-  Future<Map<String, dynamic>> reportarPublicacion(int idPublicacion, String token) async {
-    final url = Uri.parse('http://192.168.0.5/api/publicaciones/reportar/$idPublicacion'); // Ajusta la URL si es necesario
+  Future<Map<String, dynamic>> reportarPublicacion(
+    int idPublicacion,
+    String token,
+  ) async {
+    final url = Uri.parse(
+      'http://192.168.0.5:18000/api/publicaciones/reportar/$idPublicacion',
+    ); // Ajusta la URL si es necesario
 
     try {
       final response = await http.post(
@@ -136,23 +168,21 @@ class ComunidadService extends ChangeNotifier {
       }
     } catch (e) {
       print('Error al reportar la publicación: $e');
-      return {
-        'success': false,
-        'message': 'Error al conectar con el servidor',
-      };
+      return {'success': false, 'message': 'Error al conectar con el servidor'};
     }
   }
 
   // Función para crear publicación
-  Future<Map<String, dynamic>> crearPublicacion(String titulo, String contenido, String token) async {
-    final url = Uri.parse('http://192.168.0.5/api/publicaciones');
+  Future<Map<String, dynamic>> crearPublicacion(
+    String titulo,
+    String contenido,
+    String token,
+  ) async {
+    final url = Uri.parse('http://192.168.0.5:18000/api/publicaciones');
     try {
       final response = await http.post(
         url,
-        body: json.encode({
-          'titulo': titulo,
-          'contenido': contenido,
-        }),
+        body: json.encode({'titulo': titulo, 'contenido': contenido}),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token', // Enviar el token de autenticación
@@ -171,16 +201,20 @@ class ComunidadService extends ChangeNotifier {
   }
 
   // Función para actualizar una publicación existente
-  Future<Map<String, dynamic>> actualizarPublicacion(int idPublicacion, String titulo, String contenido, String token) async {
-    final url = Uri.parse('http://192.168.0.5/api/publicaciones/$idPublicacion'); // URL de actualización de la publicación
+  Future<Map<String, dynamic>> actualizarPublicacion(
+    int idPublicacion,
+    String titulo,
+    String contenido,
+    String token,
+  ) async {
+    final url = Uri.parse(
+      'http://192.168.0.5:18000/api/publicaciones/$idPublicacion',
+    ); // URL de actualización de la publicación
 
     try {
       final response = await http.put(
         url,
-        body: json.encode({
-          'titulo': titulo,
-          'contenido': contenido,
-        }),
+        body: json.encode({'titulo': titulo, 'contenido': contenido}),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token', // Autenticación
@@ -188,7 +222,10 @@ class ComunidadService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Publicación actualizada correctamente'};
+        return {
+          'success': true,
+          'message': 'Publicación actualizada correctamente',
+        };
       } else {
         return {'success': false, 'message': 'Error al actualizar publicación'};
       }
@@ -205,7 +242,7 @@ class ComunidadService extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.0.5/api/publicaciones/$id'),
+        Uri.parse('http://192.168.0.5:18000/api/publicaciones/$id'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -225,32 +262,40 @@ class ComunidadService extends ChangeNotifier {
     loading = false;
     notifyListeners();
   }
-  // Función para agregar un comentario a una publicación
-Future<Map<String, dynamic>> agregarComentario(int idPublicacion, String contenido, String token) async {
-  final url = Uri.parse('http://192.168.0.5/api/publicaciones/$idPublicacion/comentarios');
-  try {
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'contenido': contenido,
-      }),
-    );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      // Recargar los comentarios después de agregar uno nuevo
-      await obtenerComentarios(idPublicacion, token);
-      return {'success': true, 'message': 'Comentario agregado correctamente'};
-    } else {
-      return {'success': false, 'message': 'Error al agregar comentario'};
+  // Función para agregar un comentario a una publicación
+  Future<Map<String, dynamic>> agregarComentario(
+    int idPublicacion,
+    String contenido,
+    String token,
+  ) async {
+    final url = Uri.parse(
+      'http://192.168.0.5:18000/api/publicaciones/$idPublicacion/comentarios',
+    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'contenido': contenido}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Recargar los comentarios después de agregar uno nuevo
+        await obtenerComentarios(idPublicacion, token);
+        return {
+          'success': true,
+          'message': 'Comentario agregado correctamente',
+        };
+      } else {
+        return {'success': false, 'message': 'Error al agregar comentario'};
+      }
+    } catch (e) {
+      print('Error al agregar comentario: $e');
+      return {'success': false, 'message': 'Error de conexión'};
     }
-  } catch (e) {
-    print('Error al agregar comentario: $e');
-    return {'success': false, 'message': 'Error de conexión'};
   }
-}
 }
