@@ -62,4 +62,60 @@ class ComunidadService extends ChangeNotifier {
     loading = false;
     notifyListeners();
   }
+
+  // Función para crear publicación
+  Future<Map<String, dynamic>> crearPublicacion(String titulo, String contenido, String token) async {
+    final url = Uri.parse('http://192.168.0.5:18000/api/publicaciones');
+    //final url = Uri.parse('http://192.168.0.5:18000/api/publicaciones');
+    try {
+      final response = await http.post(
+        url,
+        body: json.encode({
+          'titulo': titulo,
+          'contenido': contenido,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // Enviar el token de autenticación
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Publicación creada correctamente'};
+      } else {
+        return {'success': false, 'message': 'Error al crear publicación'};
+      }
+    } catch (e) {
+      print('Error al crear la publicación: $e');
+      return {'success': false, 'message': 'Error de conexión'};
+    }
+  }
+  // Función para actualizar una publicación existente
+Future<Map<String, dynamic>> actualizarPublicacion(int idPublicacion, String titulo, String contenido, String token) async {
+  final url = Uri.parse('http://192.168.0.5:18000/api/publicaciones/$idPublicacion'); // URL de actualización de la publicación
+
+  try {
+    final response = await http.put(
+      url,
+      body: json.encode({
+        'titulo': titulo,
+        'contenido': contenido,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // Autenticación
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return {'success': true, 'message': 'Publicación actualizada correctamente'};
+    } else {
+      return {'success': false, 'message': 'Error al actualizar publicación'};
+    }
+  } catch (e) {
+    print('Error al actualizar la publicación: $e');
+    return {'success': false, 'message': 'Error de conexión'};
+  }
+}
+
 }

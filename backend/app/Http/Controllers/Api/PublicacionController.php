@@ -20,4 +20,5 @@ class PublicacionController extends Controller
             'data' => $publicaciones
         ]);
     }
+    
 }

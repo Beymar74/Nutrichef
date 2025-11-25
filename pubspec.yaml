@@ -53,6 +53,9 @@ dependencies:
   camera: ^0.10.5+6
   image_picker: ^1.2.1
 
+  #shared preferences
+  shared_preferences: ^2.0.15
+
 dev_dependencies:
   cached_network_image: ^3.3.0
   flutter_test:
