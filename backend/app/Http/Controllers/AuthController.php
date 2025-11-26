@@ -97,35 +97,52 @@ class AuthController extends Controller
      * ✏️ ACTUALIZAR PERFIL (Protegido por Sanctum)
      */
     public function actualizarPerfil(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        $validator = Validator::make($request->all(), [
-            'name'               => 'required|string|max:100',
-            'descripcion_perfil' => 'nullable|string',
-            'altura'             => 'required|numeric',
-            'peso'               => 'required|numeric',
-        ]);
+    $validator = Validator::make($request->all(), [
+        'name'               => 'required|string|max:100',
+        'descripcion_perfil' => 'nullable|string',
+        'altura'             => 'required|numeric',
+        'peso'               => 'required|numeric',
+        'imagen'             => 'nullable|string'
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        // 📝 Actualizamos tabla usuarios
-        $user->update([
-            "name"               => $request->name,
-            "descripcion_perfil" => $request->descripcion_perfil,
-        ]);
-
-        // 🏋️ Actualizamos tabla personas
-        $user->persona->update([
-            "altura" => $request->altura,
-            "peso"   => $request->peso,
-        ]);
-
+    if ($validator->fails()) {
         return response()->json([
-            "success"  => true,
-            "message"  => "Perfil actualizado correctamente",
-        ]);
+            "success" => false,
+            "errors"  => $validator->errors()
+        ],422);
     }
+
+    // ===========================
+    // 🟢 ACTUALIZAR USUARIO
+    // ===========================
+    $user->update([
+        "name"               => $request->name,
+        "descripcion_perfil" => $request->descripcion_perfil,
+    ]);
+
+    // ===========================
+    // 🟢 CAST + GUARDAR PERSONA
+    // ===========================
+    $updatePersona = [
+        "altura" => floatval($request->altura), // convierte string ➜ decimal
+        "peso"   => floatval($request->peso)
+    ];
+
+    // 🟠 si trae imagen, convertir Base64 a BYTEA
+    if($request->imagen){
+        $bin = base64_decode($request->imagen);
+        $updatePersona['imagen'] = pg_escape_bytea($bin);
+    }
+
+    $user->persona->update($updatePersona);
+
+    return response()->json([
+    "success" => true,
+    "message" => "Perfil actualizado",
+    "usuario" => $user->load('persona') // 🔥 devuelve datos reales ya actualizados
+]);
+}
 }

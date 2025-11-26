@@ -1,10 +1,12 @@
+import 'dart:io';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'services/perfil_service.dart';
 import 'nivel_cocina.dart';
 
 class CompletarPerfil extends StatefulWidget {
   final Map<String, dynamic> usuario;
-
   const CompletarPerfil({super.key, required this.usuario});
 
   @override
@@ -17,6 +19,9 @@ class _CompletarPerfilState extends State<CompletarPerfil> {
   final TextEditingController _alturaController = TextEditingController();
   final TextEditingController _pesoController = TextEditingController();
 
+  File? _imageFile;
+  String? base64Image;
+
   @override
   void initState() {
     super.initState();
@@ -24,12 +29,24 @@ class _CompletarPerfilState extends State<CompletarPerfil> {
     final persona = widget.usuario["persona"] ?? {};
 
     _nombreController.text = widget.usuario["name"] ?? "";
-    _descripcionController.text =
-        widget.usuario["descripcion_perfil"] ??
-            widget.usuario["descripcion"] ??
-            "";
+    _descripcionController.text = widget.usuario["descripcion_perfil"] ?? "";
     _alturaController.text = persona["altura"]?.toString() ?? "";
     _pesoController.text = persona["peso"]?.toString() ?? "";
+  }
+
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final XFile? img = await picker.pickImage(source: ImageSource.gallery);
+
+    if (img != null) {
+      final file = File(img.path);
+      final bytes = await file.readAsBytes();
+
+      setState(() {
+        _imageFile = file;
+        base64Image = base64Encode(bytes);
+      });
+    }
   }
 
   Future<void> _continuar() async {
@@ -37,68 +54,38 @@ class _CompletarPerfilState extends State<CompletarPerfil> {
         _descripcionController.text.trim().isEmpty ||
         _alturaController.text.trim().isEmpty ||
         _pesoController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⚠ Completa todos los campos'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("⚠ Completa los campos")));
       return;
     }
 
-    // 💡 TOKEN
     final token = widget.usuario["token"];
-    if (token == null || token.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ No se encontró token, inicia sesión de nuevo'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    if (token == null) return;
 
-    // 🔄 ACTUALIZAR EN BACKEND
     final res = await PerfilService.actualizarPerfil(
       token: token,
       name: _nombreController.text.trim(),
       descripcion: _descripcionController.text.trim(),
       altura: _alturaController.text.trim(),
       peso: _pesoController.text.trim(),
+      imagen: base64Image,
     );
 
     if (res["success"] == true) {
+
+  String tokenOriginal = widget.usuario["token"]; // 🔥 GUARDAR TOKEN
+
+  widget.usuario.clear();
+  widget.usuario.addAll(res["usuario"]); // datos nuevos del backend
+  widget.usuario["token"] = tokenOriginal; // 🔥 VOLVER A INSERTAR TOKEN
+
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (_) => NivelCocina(usuario: widget.usuario)),
+  );
+} else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Perfil actualizado con éxito'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      // 🔄 ACTUALIZAR LOCALMENTE
-      widget.usuario["name"] = _nombreController.text.trim();
-      widget.usuario["descripcion_perfil"] =
-          _descripcionController.text.trim();
-
-      widget.usuario["persona"] ??= {};
-      widget.usuario["persona"]["altura"] =
-          _alturaController.text.trim();
-      widget.usuario["persona"]["peso"] =
-          _pesoController.text.trim();
-
-      // ⚠ AHORA NAVEGA A LA SIGUIENTE PANTALLA
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => NivelCocina(usuario: widget.usuario),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res["message"] ?? '❌ Error al actualizar'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(res["message"])),
       );
     }
   }
@@ -107,161 +94,81 @@ class _CompletarPerfilState extends State<CompletarPerfil> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 35),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
+          child: Column(children: [
+            const SizedBox(height: 25),
+            const Text("Completar Perfil",
+                style: TextStyle(fontSize: 25,fontWeight: FontWeight.bold,color: Color(0xFFFF8C21))),
+            const SizedBox(height: 40),
 
-              const Text(
-                'Perfil',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF8C21),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                'Completa Tu Perfil',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Text(
-                'Personaliza tu experiencia para descubrir recetas recomendadas',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                  height: 1.5,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // FOTO (NO FUNCIONAL AÚN)
-              Stack(
-                alignment: Alignment.center,
+            // 🔥 FOTO DE PERFIL FUNCIONAL
+            GestureDetector(
+              onTap: pickImage,
+              child: Stack(
                 children: [
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFD54F),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.person,
-                        size: 60, color: Colors.white),
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Color(0xFFFFD54F),
+                    backgroundImage: _imageFile != null
+                        ? FileImage(_imageFile!)
+                        : null,
+                    child: _imageFile == null
+                        ? const Icon(Icons.person,size:70,color:Colors.white)
+                        : null,
                   ),
                   Positioned(
-                    bottom: 0,
-                    right: 0,
+                    bottom: 0,right: 0,
                     child: Container(
-                      width: 40,
-                      height: 40,
+                      padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFFF8C21),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.edit,
-                          size: 20, color: Colors.white),
+                        color: Color(0xFFFF8C21),shape: BoxShape.circle),
+                      child: const Icon(Icons.edit,color:Colors.white,size:20),
                     ),
-                  ),
+                  )
                 ],
               ),
+            ),
 
-              const SizedBox(height: 45),
+            const SizedBox(height: 45),
 
-              campoTexto(
-                  "Nombre De Usuario:", _nombreController, "usuario123"),
-              campoTexto(
-                  "Descripción:", _descripcionController, "Cuéntanos sobre ti"),
-              campoTexto("Altura (cm):", _alturaController, "170",
-                  tipo: TextInputType.number),
-              campoTexto("Peso (Kg):", _pesoController, "65",
-                  tipo: TextInputType.number),
+            campo("Nombre de Usuario",_nombreController,"username"),
+            campo("Descripción",_descripcionController,"Escribe algo sobre ti"),
+            campo("Altura (m)",_alturaController,"1.70",tipo: TextInputType.number),
+            campo("Peso (kg)",_pesoController,"65",tipo: TextInputType.number),
 
-              const SizedBox(height: 40),
+            const SizedBox(height: 40),
 
-              SizedBox(
-                width: 220,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _continuar,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF8C21),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25)),
-                  ),
-                  child: const Text(
-                    'Continuar ➜',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
+            ElevatedButton(
+              onPressed:_continuar,
+              style:ElevatedButton.styleFrom(
+                minimumSize: Size(220,50),backgroundColor: Color(0xFFFF8C21),
+                shape: RoundedRectangleBorder(borderRadius:BorderRadius.circular(25))),
+              child: const Text("Continuar ➜",style:TextStyle(fontSize:17,color:Colors.white)),
+            ),
 
-              const SizedBox(height: 40),
-            ],
-          ),
+            const SizedBox(height:40)
+          ]),
         ),
       ),
     );
   }
 
-  Widget campoTexto(String label, TextEditingController controller, String hint,
-      {TextInputType tipo = TextInputType.text}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFD54F),
-            borderRadius: BorderRadius.circular(25),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: tipo,
-            decoration: InputDecoration(
-              hintText: hint,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(25),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 15),
-            ),
-          ),
+  Widget campo(String t,TextEditingController c,String h,{tipo=TextInputType.text}){
+    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Text(t,style:TextStyle(fontWeight:FontWeight.w600,fontSize:15)),
+      const SizedBox(height:8),
+      Container(
+        decoration: BoxDecoration(color:Color(0xFFFFD54F),borderRadius:BorderRadius.circular(25)),
+        child: TextField(
+          controller:c,keyboardType:tipo,
+          decoration:InputDecoration(hintText:h,border:OutlineInputBorder(
+            borderRadius:BorderRadius.circular(25),borderSide: BorderSide.none),
+          contentPadding:EdgeInsets.symmetric(horizontal:18,vertical:13)),
         ),
-        const SizedBox(height: 20),
-      ],
-    );
+      ),
+      const SizedBox(height:20)
+    ]);
   }
 }
