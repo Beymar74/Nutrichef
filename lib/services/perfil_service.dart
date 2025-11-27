@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class PerfilService {
-  //static const String baseUrl = "http://172.174.2.19:18000/api"; //IP EMI
+  //static const String baseUrl = "http://172.172.4.254:18000/api"; //IP EMI
   static const String baseUrl = 'http://192.168.0.51:18000/api'; // IP CASA
 
   // ✔ ACTUALIZA PERFIL COMPLETO

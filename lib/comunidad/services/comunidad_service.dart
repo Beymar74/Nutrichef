@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ComunidadService extends ChangeNotifier {
-  bool loading = false; // Indica si estamos cargando las publicaciones
-  List<dynamic> posts = []; // Lista donde almacenaremos las publicaciones
-  List<dynamic> comentarios = []; // Lista para almacenar los comentarios
+  bool loading = false;
+  List<dynamic> posts = [];
+  List<dynamic> comentarios = [];
 
   // Método para cargar las publicaciones desde la API
   Future<void> cargarFeed(String token) async {
@@ -50,46 +50,42 @@ class ComunidadService extends ChangeNotifier {
   Future<void> obtenerComentarios(int idPublicacion, String token) async {
     final url = Uri.parse(
       'http://192.168.0.5:18000/api/publicaciones/$idPublicacion/comentarios',
-    ); // Ajusta la URL si es necesario
+    );
     try {
       final response = await http.get(
         url,
         headers: {
-          'Authorization': 'Bearer $token', // Autenticación con token
+          'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        comentarios = data['data']; // Guardamos los comentarios en la lista
+        comentarios = data['data'];
       } else {
         throw Exception('Error al cargar los comentarios');
       }
     } catch (e) {
       print('Error al obtener los comentarios: $e');
     }
-    notifyListeners(); // Notificamos que los comentarios se han cargado
+    notifyListeners();
   }
 
   // Método para dar reacción (like) a una publicación
-  Future<Map<String, dynamic>> darReaccion(
-    int idPublicacion,
-    String token,
-  ) async {
+  Future<Map<String, dynamic>> darReaccion(int idPublicacion, String token) async {
     final url = Uri.parse(
       'http://192.168.0.5:18000/api/publicaciones/$idPublicacion/reaccion',
-    ); // Asegúrate de que este sea el endpoint correcto en tu API
+    );
     try {
       final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer $token', // Autenticación con token
+          'Authorization': 'Bearer $token',
           'Accept': 'application/json',
-          'Content-Type':
-              'application/json', // Especificamos que estamos enviando JSON
+          'Content-Type': 'application/json',
         },
         body: json.encode({
-          'reaccion': 'like', // O el tipo de reacción que estés manejando
+          'reaccion': 'like',
         }),
       );
 
@@ -105,20 +101,17 @@ class ComunidadService extends ChangeNotifier {
   }
 
   // Función para eliminar una publicación
-  Future<Map<String, dynamic>> eliminarPublicacion(
-    int idPublicacion,
-    String token,
-  ) async {
+  Future<Map<String, dynamic>> eliminarPublicacion(int idPublicacion, String token) async {
     final url = Uri.parse(
       'http://192.168.0.5:18000/api/publicaciones/$idPublicacion',
-    ); // URL para eliminar publicación
+    );
 
     try {
       final response = await http.delete(
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // Autenticación
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -137,19 +130,16 @@ class ComunidadService extends ChangeNotifier {
   }
 
   // Función para reportar publicación
-  Future<Map<String, dynamic>> reportarPublicacion(
-    int idPublicacion,
-    String token,
-  ) async {
+  Future<Map<String, dynamic>> reportarPublicacion(int idPublicacion, String token) async {
     final url = Uri.parse(
       'http://192.168.0.5:18000/api/publicaciones/reportar/$idPublicacion',
-    ); // Ajusta la URL si es necesario
+    );
 
     try {
       final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer $token', // Autenticación con token
+          'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
@@ -172,24 +162,22 @@ class ComunidadService extends ChangeNotifier {
     }
   }
 
-  // Función para crear publicación
-  Future<Map<String, dynamic>> crearPublicacion(
-    String titulo,
-    String contenido,
-    String token,
-  ) async {
+  // ✅ Función para crear publicación (SOLO UNA VERSIÓN)
+  Future<Map<String, dynamic>> crearPublicacion(String titulo, String contenido, String token) async {
     final url = Uri.parse('http://192.168.0.5:18000/api/publicaciones');
     try {
       final response = await http.post(
         url,
-        body: json.encode({'titulo': titulo, 'contenido': contenido}),
+        body: json.encode({
+          'descripcion': contenido, // ✅ Enviar solo descripcion
+        }),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // Enviar el token de autenticación
+          'Authorization': 'Bearer $token',
         },
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true, 'message': 'Publicación creada correctamente'};
       } else {
         return {'success': false, 'message': 'Error al crear publicación'};
@@ -209,15 +197,17 @@ class ComunidadService extends ChangeNotifier {
   ) async {
     final url = Uri.parse(
       'http://192.168.0.5:18000/api/publicaciones/$idPublicacion',
-    ); // URL de actualización de la publicación
+    );
 
     try {
       final response = await http.put(
         url,
-        body: json.encode({'titulo': titulo, 'contenido': contenido}),
+        body: json.encode({
+          'descripcion': contenido, // ✅ Cambiar a descripcion
+        }),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // Autenticación
+          'Authorization': 'Bearer $token',
         },
       );
 
@@ -251,7 +241,7 @@ class ComunidadService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        posts = [data['data']]; // Asignamos solo una publicación
+        posts = [data['data']];
       } else {
         throw Exception('Error al obtener la publicación');
       }
@@ -284,7 +274,6 @@ class ComunidadService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Recargar los comentarios después de agregar uno nuevo
         await obtenerComentarios(idPublicacion, token);
         return {
           'success': true,

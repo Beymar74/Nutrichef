@@ -112,3 +112,20 @@ class PublicacionController extends Controller
         ]);
     }
 }
+public function store(Request $request)
+{
+    $request->validate([
+        'descripcion' => 'required|string',
+    ]);
+
+    $publicacion = Publicacion::create([
+        'descripcion' => $request->descripcion,
+        'id_usuario' => Auth::id(), // Usuario autenticado
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Publicación creada exitosamente',
+        'data' => $publicacion
+    ], 201);
+}

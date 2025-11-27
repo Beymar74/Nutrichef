@@ -58,4 +58,7 @@ Route::post('/publicaciones/{id}/reaccion', [PublicacionController::class, 'darR
 Route::delete('/publicaciones/{id}', [PublicacionController::class, 'eliminarPublicacion'])->middleware('auth:sanctum');
 // Ruta para reportar una publicación
 Route::middleware('auth:sanctum')->post('/publicaciones/reportar/{id}', [PublicacionController::class, 'reportar']);
-
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/publicaciones', [PublicacionController::class, 'store']);
+    Route::get('/publicaciones', [PublicacionController::class, 'index']);
+});
