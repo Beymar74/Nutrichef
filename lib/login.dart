@@ -402,37 +402,6 @@ Future<void> _iniciarSesion() async {
 
                 const SizedBox(height: 20),
 
-                // BOTÓN GOOGLE
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: _loginConGoogle,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.black87,
-                      side: BorderSide(color: Colors.grey[300]!, width: 1.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/images/googlelogo.png',
-                            height: 24, width: 24),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Continuar con Google',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 const SizedBox(height: 25),
 
                 Row(

@@ -21,6 +21,7 @@ class Persona extends Model
         'altura',
         'peso',
         'fecha_nacimiento',
+        'imagen',
         'estado'
     ];
 

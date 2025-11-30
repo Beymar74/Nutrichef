@@ -29,6 +29,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/perfil/nivel-cocina',     [PerfilController::class, 'actualizarNivelCocina']);
     Route::put('/perfil/alergias',         [PerfilController::class, 'actualizarAlergias']);
 });
+Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
+    $request->user()->tokens()->delete();  // borra token
+    return response()->json(["success"=>true,"message"=>"Sesión cerrada"]);
+});
 // Recetas
 Route::get('/recetas',      [RecetaController::class, 'index']);
 Route::get('/recetas/{id}', [RecetaController::class, 'show']);

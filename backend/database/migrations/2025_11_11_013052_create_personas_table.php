@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('altura', 5, 2)->nullable();
             $table->decimal('peso', 6, 2)->nullable();
             $table->date('fecha_nacimiento')->nullable();
+            $table->binary('imagen')->nullable();
             $table->boolean('estado')->default(true);
             $table->timestamp('created_at', 0)->useCurrent();
             $table->timestamp('updated_at', 0)->useCurrent()->useCurrentOnUpdate();
