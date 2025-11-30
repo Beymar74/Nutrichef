@@ -49,23 +49,10 @@ class HomeContent extends StatelessWidget {
               const SizedBox(height: 25),
 
               // CATEGORÍAS
-              CategoriaChips(
-                categoriaSeleccionada: categoriaSeleccionada,
-                onCategoriaSeleccionada: onCategoriaSeleccionada,
-              ),
+              const CategoriaChips(),
 
               const SizedBox(height: 15),
 
-              // CONTADOR DE RECETAS
-              Text(
-                '${recetasFiltradas.length} recetas disponibles',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                ),
-              ),
-
-              const SizedBox(height: 15),
 
               // RECETA DE MODA
               const Text(

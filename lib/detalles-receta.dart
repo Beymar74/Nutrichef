@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'asistente_cocina.dart'; 
 import 'receta_model.dart';
 import 'asistente_voz_modal.dart';
+import 'screens/chef/chef_profile_screen.dart';
 
 class DetallesRecetaScreen extends StatelessWidget {
   final Map<String, dynamic> receta;
@@ -68,7 +69,7 @@ class DetallesRecetaScreen extends StatelessWidget {
           children: [
             _buildMainVideo(),
             const SizedBox(height: 16),
-            _buildChefInfo(),
+            _buildChefInfo(context), 
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Divider(color: Color(0xFFFFD700), thickness: 2),
@@ -243,59 +244,84 @@ class DetallesRecetaScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChefInfo() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: NetworkImage(
-              'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  receta['chef_username'] ?? '@nutrichef',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  receta['chef'] ?? 'Chef Nutrichef',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFD700),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Text(
-              'Seguir',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+  // Aceptamos BuildContext como parámetro
+  Widget _buildChefInfo(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Navegación a la pantalla de Perfil del Chef
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChefProfileScreen(
+              chef: Chef(
+                // Usamos los datos de tu mapa 'receta'
+                name: receta['chef'] ?? 'Chef Nutrichef',
+                handle: receta['chef_username'] ?? '@nutrichef',
+                // Usamos la misma imagen que tienes hardcodeada o una del mapa si existiera
+                imageUrl: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200', 
+                bio: "Apasionado por la cocina saludable y los ingredientes frescos. ¡Sígueme para más recetas!",
+                followers: 12,   // Datos simulados (o sácalos de 'receta' si los tienes)
+                following: 150,
+                recipesCount: 45,
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.more_vert,
-            color: Colors.grey[600],
-          ),
-        ],
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: NetworkImage(
+                'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    receta['chef_username'] ?? '@nutrichef',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    receta['chef'] ?? 'Chef Nutrichef',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Botón Seguir (Visual)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD700),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Seguir',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.more_vert,
+              color: Colors.grey[600],
+            ),
+          ],
+        ),
       ),
     );
   }
