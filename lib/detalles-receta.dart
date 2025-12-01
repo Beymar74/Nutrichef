@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert'; // Para JSON
+import 'package:http/http.dart' as http; // Para conectar con Laravel
 import 'asistente_cocina.dart'; 
 import 'receta_model.dart';
 import 'asistente_voz_modal.dart';
@@ -244,26 +246,25 @@ class DetallesRecetaScreen extends StatelessWidget {
     );
   }
 
-  // Aceptamos BuildContext como parámetro
   Widget _buildChefInfo(BuildContext context) {
+    final String nombreChef = receta['chef'] ?? 'Chef Nutrichef';
+    final String handleChef = receta['chef_username'] ?? '@nutrichef';
+    
+    final String imagenChef = receta['chef_image'] ?? 
+        'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nombreChef)}&background=ff8e00&color=fff&size=256';
+
+    final int chefId = (receta['id_usuario_creador'] is int) 
+            ? receta['id_usuario_creador'] 
+            : 1;
+
     return GestureDetector(
       onTap: () {
-        // Navegación a la pantalla de Perfil del Chef
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChefProfileScreen(
-              chef: Chef(
-                // Usamos los datos de tu mapa 'receta'
-                name: receta['chef'] ?? 'Chef Nutrichef',
-                handle: receta['chef_username'] ?? '@nutrichef',
-                // Usamos la misma imagen que tienes hardcodeada o una del mapa si existiera
-                imageUrl: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200', 
-                bio: "Apasionado por la cocina saludable y los ingredientes frescos. ¡Sígueme para más recetas!",
-                followers: 12,   // Datos simulados (o sácalos de 'receta' si los tienes)
-                following: 150,
-                recipesCount: 45,
-              ),
+              chefId: chefId,
+              placeholderName: nombreChef,
             ),
           ),
         );
@@ -274,9 +275,9 @@ class DetallesRecetaScreen extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 30,
-              backgroundImage: NetworkImage(
-                'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=200',
-              ),
+              backgroundColor: Colors.grey[200],
+              backgroundImage: NetworkImage(imagenChef),
+              onBackgroundImageError: (_, __) {}, 
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -284,14 +285,14 @@ class DetallesRecetaScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    receta['chef_username'] ?? '@nutrichef',
+                    handleChef,
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 12,
                     ),
                   ),
                   Text(
-                    receta['chef'] ?? 'Chef Nutrichef',
+                    nombreChef,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -300,25 +301,19 @@ class DetallesRecetaScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // Botón Seguir (Visual)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD700),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Seguir',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+            
+            // Botón Seguir Conectado a BD
+            BotonSeguirChef(
+              chefId: chefId, 
+              nombreChef: nombreChef
             ),
+
             const SizedBox(width: 8),
-            Icon(
-              Icons.more_vert,
-              color: Colors.grey[600],
+            IconButton(
+               icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+               onPressed: () {}, 
+               padding: EdgeInsets.zero,
+               constraints: const BoxConstraints(),
             ),
           ],
         ),
@@ -496,5 +491,173 @@ class DetallesRecetaScreen extends StatelessWidget {
     } else {
       return 'g';
     }
+  }
+}
+
+// --- BOTÓN CONECTADO A BASE DE DATOS ---
+
+class BotonSeguirChef extends StatefulWidget {
+  final int chefId;
+  final String nombreChef;
+
+  const BotonSeguirChef({
+    Key? key, 
+    required this.chefId,
+    required this.nombreChef
+  }) : super(key: key);
+
+  @override
+  _BotonSeguirChefState createState() => _BotonSeguirChefState();
+}
+
+class _BotonSeguirChefState extends State<BotonSeguirChef> {
+  bool isFollowing = false;
+  bool isLoading = false; // Para evitar doble clic
+
+  // CAMBIA ESTO POR TU IP LOCAL (ej: 192.168.1.5 si usas celular real)
+  final String baseUrl = 'http://192.168.0.16:18000/api'; 
+  
+  // SIMULACIÓN DE USUARIO LOGUEADO (Sácalo de tu AuthProvider luego)
+  // Usamos el ID 2 que es 'Usuario Prueba' en tu seeder
+  final int currentUserId = 2; 
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialStatus();
+  }
+
+  // 1. Verificar si ya lo sigo al entrar a la pantalla
+  Future<void> _checkInitialStatus() async {
+    try {
+      final url = Uri.parse('$baseUrl/seguidores/status?id_usuario=$currentUserId&id_usuario_seguido=${widget.chefId}');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            isFollowing = data['siguiendo'];
+          });
+        }
+      }
+    } catch (e) {
+      print("Error verificando seguidores: $e");
+    }
+  }
+
+  // 2. Acción de Seguir / Dejar de Seguir
+  Future<void> _toggleFollow() async {
+    if (isLoading) return;
+
+    // UI Optimista: Cambiamos el diseño INMEDIATAMENTE para que se sienta rápido
+    setState(() {
+      isFollowing = !isFollowing;
+      isLoading = true;
+    });
+
+    try {
+      final url = Uri.parse('$baseUrl/seguidores/toggle');
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          'id_usuario': currentUserId, // Quien sigue
+          'id_usuario_seguido': widget.chefId, // A quien sigue
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Confirmamos el estado real que nos devuelve el servidor
+        if (mounted) {
+           setState(() {
+             isFollowing = data['siguiendo'];
+           });
+        }
+        
+        // Feedback visual
+        final mensaje = isFollowing 
+            ? '¡Ahora sigues a ${widget.nombreChef}!' 
+            : 'Dejaste de seguir a ${widget.nombreChef}.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(mensaje),
+            backgroundColor: isFollowing ? Colors.green : Colors.grey,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      } else {
+        // Si falló, revertimos el cambio visual
+        if (mounted) {
+          setState(() {
+            isFollowing = !isFollowing; 
+          });
+        }
+      }
+    } catch (e) {
+      print("Error al seguir: $e");
+      // Si hubo error de red, revertimos
+      if (mounted) {
+        setState(() {
+          isFollowing = !isFollowing;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _toggleFollow,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        decoration: BoxDecoration(
+          color: isFollowing ? Colors.white : const Color(0xFFFFD700),
+          borderRadius: BorderRadius.circular(20),
+          border: isFollowing 
+              ? Border.all(color: const Color(0xFFFFD700), width: 2) 
+              : null,
+          boxShadow: isFollowing 
+              ? [] 
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+        ),
+        child: Row(
+          children: [
+            if (isLoading) 
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: SizedBox(
+                  width: 12, 
+                  height: 12, 
+                  child: CircularProgressIndicator(strokeWidth: 2, color: isFollowing ? const Color(0xFFFFD700) : Colors.white)
+                ),
+              ),
+            Text(
+              isFollowing ? 'Siguiendo' : 'Seguir',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isFollowing ? const Color(0xFFFFD700) : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

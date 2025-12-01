@@ -37,24 +37,22 @@
                     <?php
                         $descEstado = strtoupper($receta->estado->descripcion ?? 'PENDIENTE');
                         
-                        // Lógica ajustada a tu Controlador:
-                        // BORRADOR = Aprobada (Verde)
-                        // PENDIENTE = Pendiente (Naranja)
-                        // OCULTA = Rechazada (Rojo)
+                        // Lógica ajustada: PUBLICADA = Aprobada
                         $claseEstado = match($descEstado) {
-                            'BORRADOR' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                            'PUBLICADA', 'PUBLICADO' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
                             'PENDIENTE' => 'bg-calabaza-100 text-calabaza-800 border-calabaza-200',
                             'OCULTA' => 'bg-red-100 text-red-700 border-red-200',
-                            'PUBLICADA' => 'bg-blue-100 text-blue-700 border-blue-200', // Por si acaso existe real
+                            'BORRADOR' => 'bg-blue-100 text-blue-700 border-blue-200',
                             'ELIMINADA' => 'bg-gray-100 text-gray-700 border-gray-200',
                             default => 'bg-slate-100 text-slate-700 border-slate-200'
                         };
 
-                        // Texto legible para el humano (Mapeo visual)
+                        // Texto legible
                         $textoEstado = match($descEstado) {
-                            'BORRADOR' => 'Aprobada',
+                            'PUBLICADA', 'PUBLICADO' => 'Aprobada',
                             'PENDIENTE' => 'Pendiente',
                             'OCULTA' => 'Rechazada',
+                            'BORRADOR' => 'Borrador',
                             default => ucfirst(strtolower($descEstado))
                         };
                     ?>
@@ -94,22 +92,26 @@
                 </div>
 
                 <div class="space-y-8">
-                    <!-- Ingredientes -->
+                    <!-- Ingredientes - ⭐ CAMBIO AQUÍ -->
                     <div>
                         <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <i data-lucide="list" class="text-calabaza-500 w-5 h-5"></i> Ingredientes
                         </h3>
                         <div class="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
-                            <?php $__empty_1 = true; $__currentLoopData = $receta->ingredientesReceta; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $ir): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <?php $__empty_1 = true; $__currentLoopData = $receta->ingredientes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $ingrediente): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <div class="flex justify-between items-center p-3 border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
                                     <span class="text-slate-700 font-medium">
-                                        <?php echo e($ir->ingrediente->descripcion ?? 'Ingrediente desconocido'); ?>
+                                        <?php echo e($ingrediente->descripcion ?? 'Ingrediente desconocido'); ?>
 
                                     </span>
                                     
                                     <span class="text-sm font-bold text-slate-900 bg-white px-2 py-1 rounded border border-slate-200 shadow-sm">
-                                        <?php echo e($ir->cantidad); ?> <?php echo e($ir->unidadMedida->descripcion ?? ''); ?>
+                                        <?php echo e($ingrediente->pivot->cantidad ?? ''); ?>
 
+                                        <?php if($ingrediente->pivot->id_unidad_medida): ?>
+                                            <?php echo e(\App\Models\Subdominio::find($ingrediente->pivot->id_unidad_medida)->descripcion ?? ''); ?>
+
+                                        <?php endif; ?>
                                     </span>
                                 </div>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -158,17 +160,17 @@
                 </div>
             </div>
 
-            <!-- Panel de Autor -->
+            <!-- Panel de Autor - ⭐ CAMBIO AQUÍ -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
                 <h3 class="font-bold text-xs text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">Autor</h3>
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-calabaza-100 flex items-center justify-center text-calabaza-700 font-bold border border-calabaza-200">
-                        <?php echo e(substr($receta->creador->name ?? 'U', 0, 1)); ?>
+                        <?php echo e(substr($receta->usuarioCreador->name ?? 'U', 0, 1)); ?>
 
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-800"><?php echo e($receta->creador->name ?? 'Desconocido'); ?></p>
-                        <p class="text-xs text-slate-500"><?php echo e($receta->creador->email ?? ''); ?></p>
+                        <p class="text-sm font-bold text-slate-800"><?php echo e($receta->usuarioCreador->name ?? 'Desconocido'); ?></p>
+                        <p class="text-xs text-slate-500"><?php echo e($receta->usuarioCreador->email ?? ''); ?></p>
                     </div>
                 </div>
             </div>

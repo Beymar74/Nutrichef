@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\IAController;
+use App\Http\Controllers\Api\SeguidoresController;
+use App\Http\Controllers\Api\ChefController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -48,3 +50,8 @@ Route::post('/buscar-recetas', [IAController::class, 'buscarPorIngredientes']);
 // Listados auxiliares
 Route::get('/ingredientes/listar', [IAController::class, 'listarIngredientes']);
 Route::get('/unidades/listar', [IAController::class, 'listarUnidades']);
+//Seguidores
+Route::post('/seguidores/toggle', [SeguidoresController::class, 'toggle']);
+Route::get('/seguidores/status', [SeguidoresController::class, 'checkStatus']);
+//Chefs
+Route::get('/chefs/{id}', [ChefController::class, 'show']);
