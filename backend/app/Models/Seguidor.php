@@ -12,12 +12,14 @@ class Seguidor extends Model
     protected $table = 'seguidores';
     protected $guarded = [];
 
-    public function usuario()
+    // El usuario que DA el follow (El Seguidor)
+    public function seguidor()
     {
         return $this->belongsTo(Usuario::class, 'id_usuario');
     }
 
-    public function usuarioSeguido()
+    // El usuario que RECIBE el follow (El Seguido / El Chef)
+    public function seguido()
     {
         return $this->belongsTo(Usuario::class, 'id_usuario_seguido');
     }

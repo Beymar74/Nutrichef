@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\IAController;
+use App\Http\Controllers\ChefController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -48,3 +49,7 @@ Route::post('/buscar-recetas', [IAController::class, 'buscarPorIngredientes']);
 // Listados auxiliares
 Route::get('/ingredientes/listar', [IAController::class, 'listarIngredientes']);
 Route::get('/unidades/listar', [IAController::class, 'listarUnidades']);
+
+// Chef
+Route::get('/chefs/{id}', [ChefController::class, 'show']);
+Route::get('/imagenes/recetas/{id}', [ChefController::class, 'getRecipeImage'])->name('recetas.imagen');

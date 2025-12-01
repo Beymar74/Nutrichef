@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-// --- MODELO (Puedes moverlo a un archivo separado si prefieres) ---
+// --- MODELO CHEF ---
 class Chef {
+  final int id;
   final String name;
   final String handle;
   final String imageUrl;
@@ -11,6 +14,7 @@ class Chef {
   final int recipesCount;
 
   Chef({
+    required this.id,
     required this.name,
     required this.handle,
     required this.imageUrl,
@@ -19,21 +23,141 @@ class Chef {
     required this.following,
     required this.recipesCount,
   });
+
+  // Factory para crear un Chef desde el JSON de Laravel
+  factory Chef.fromJson(Map<String, dynamic> json) {
+    return Chef(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? 'Chef Desconocido',
+      handle: json['handle'] ?? '@chef',
+      imageUrl: json['avatar_url'] ?? 'https://via.placeholder.com/150',
+      bio: json['descripcion_perfil'] ?? '',
+      followers: json['followers_count'] ?? 0,
+      following: json['following_count'] ?? 0,
+      recipesCount: json['recipes_count'] ?? 0,
+    );
+  }
 }
 
-// --- PANTALLA DE PERFIL DEL CHEF ---
-class ChefProfileScreen extends StatelessWidget {
-  final Chef chef;
+// --- MODELO RECETA (Para la lista inferior) ---
+class Recipe {
+  final int id;
+  final String title;
+  final String imageUrl;
+  final int timeMinutes;
+  final double rating;
 
-  const ChefProfileScreen({Key? key, required this.chef}) : super(key: key);
+  Recipe({
+    required this.id,
+    required this.title,
+    required this.imageUrl,
+    required this.timeMinutes,
+    required this.rating,
+  });
+
+  factory Recipe.fromJson(Map<String, dynamic> json) {
+    return Recipe(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? 'Receta',
+      imageUrl: json['imageUrl'] ?? 'https://via.placeholder.com/150',
+      timeMinutes: json['timeMinutes'] ?? 0,
+      rating: (json['rating'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+// --- PANTALLA PRINCIPAL ---
+class ChefProfileScreen extends StatefulWidget {
+  final int chefId; // ID del chef que queremos ver
+
+  // Por defecto probamos con el ID 1 si no se pasa nada
+  const ChefProfileScreen({Key? key, this.chefId = 1}) : super(key: key);
+
+  @override
+  State<ChefProfileScreen> createState() => _ChefProfileScreenState();
+}
+
+class _ChefProfileScreenState extends State<ChefProfileScreen> {
+  // Colores de tu marca
+  final Color brandColor = const Color(0xFFFF8E00);
+  final Color actionButtonColor = const Color(0xFFFFC107);
+
+  // Estado
+  bool _isLoading = true;
+  bool _hasError = false;
+  late Chef _chef;
+  List<Recipe> _recipes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchChefData();
+  }
+
+  // Lógica para obtener datos del backend Laravel
+  Future<void> _fetchChefData() async {
+    // ⚠️ IMPORTANTE: Cambia esta IP por la de tu servidor Laravel
+    // Si usas emulador Android: 10.0.2.2:8000
+    // Si usas dispositivo físico: Tu IP local (ej. 192.168.1.X:8000)
+    final String baseUrl = 'http://192.168.0.16:18000/api'; 
+
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/chefs/${widget.chefId}'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _chef = Chef.fromJson(data['chef']);
+          _recipes = (data['recetas'] as List).map((r) => Recipe.fromJson(r)).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Error al cargar perfil');
+      }
+    } catch (e) {
+      print("Error de conexión: $e");
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // EL COLOR DE TU MARCA (#ff8e00)
-    final Color brandColor = const Color(0xFFFF8E00);
-    // Un amarillo para botones secundarios (basado en tus capturas),
-    // o puedes cambiarlo a brandColor si prefieres todo naranja.
-    final Color actionButtonColor = const Color(0xFFFFC107);
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: brandColor)),
+      );
+    }
+
+    if (_hasError) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              SizedBox(height: 10),
+              Text("No se pudo conectar con el servidor"),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                    _hasError = false;
+                  });
+                  _fetchChefData();
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: brandColor),
+                child: Text("Reintentar"),
+              )
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -49,7 +173,7 @@ class ChefProfileScreen extends StatelessWidget {
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: brandColor), // Flecha naranja
+          icon: Icon(Icons.arrow_back_ios, color: brandColor), 
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -63,17 +187,18 @@ class ChefProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(height: 10),
-            // 1. Foto de Perfil Grande con borde de tu color
+            
+            // 1. Foto de Perfil
             Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: brandColor, width: 3), // Borde Naranja
+                border: Border.all(color: brandColor, width: 3), 
               ),
               child: Padding(
-                padding: const EdgeInsets.all(4.0), // Espacio blanco entre borde y foto
+                padding: const EdgeInsets.all(4.0), 
                 child: CircleAvatar(
                   radius: 50,
-                  backgroundImage: NetworkImage(chef.imageUrl),
+                  backgroundImage: NetworkImage(_chef.imageUrl),
                   onBackgroundImageError: (_, __) {},
                   backgroundColor: Colors.grey[200],
                 ),
@@ -83,7 +208,7 @@ class ChefProfileScreen extends StatelessWidget {
 
             // 2. Nombre y Handle
             Text(
-              chef.name,
+              _chef.name,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -91,7 +216,7 @@ class ChefProfileScreen extends StatelessWidget {
               ),
             ),
             Text(
-              chef.handle,
+              _chef.handle,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
@@ -105,11 +230,11 @@ class ChefProfileScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildStatItem("Recetas", chef.recipesCount.toString(), brandColor),
+                _buildStatItem("Recetas", _chef.recipesCount.toString(), brandColor),
                 Container(height: 30, width: 1, color: Colors.grey[300]),
-                _buildStatItem("Seguidores", "${chef.followers}k", brandColor),
+                _buildStatItem("Seguidores", _chef.followers.toString(), brandColor),
                 Container(height: 30, width: 1, color: Colors.grey[300]),
-                _buildStatItem("Siguiendo", chef.following.toString(), brandColor),
+                _buildStatItem("Siguiendo", _chef.following.toString(), brandColor),
               ],
             ),
 
@@ -124,7 +249,7 @@ class ChefProfileScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: brandColor, // Botón Seguir NARANJA
+                        backgroundColor: brandColor, 
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
@@ -192,15 +317,22 @@ class ChefProfileScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 16),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: 4,
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    itemBuilder: (context, index) {
-                      return _buildRecipeCard(index, brandColor);
-                    },
-                  ),
+                  
+                  // Lista Dinámica de Recetas
+                  _recipes.isEmpty 
+                    ? Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Center(child: Text("Este chef aún no tiene recetas.")),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: _recipes.length,
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        itemBuilder: (context, index) {
+                          return _buildRecipeCard(_recipes[index], brandColor);
+                        },
+                      ),
                   SizedBox(height: 20),
                 ],
               ),
@@ -227,7 +359,7 @@ class ChefProfileScreen extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: color, // Etiqueta en Naranja
+            color: color, 
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -235,11 +367,7 @@ class ChefProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecipeCard(int index, Color brandColor) {
-    // Nombres falsos para la demo
-    final titles = ["Ensalada Quinoa", "Pasta al Pesto", "Tacos Veganos", "Smoothie Tropical"];
-    final times = ["20 min", "15 min", "25 min", "10 min"];
-
+  Widget _buildRecipeCard(Recipe recipe, Color brandColor) {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       height: 110,
@@ -256,6 +384,7 @@ class ChefProfileScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Imagen de la receta
           Container(
             width: 110,
             decoration: BoxDecoration(
@@ -264,8 +393,12 @@ class ChefProfileScreen extends StatelessWidget {
                 bottomLeft: Radius.circular(20),
               ),
               image: DecorationImage(
-                image: NetworkImage("https://picsum.photos/300/300?random=$index"),
+                image: NetworkImage(recipe.imageUrl),
                 fit: BoxFit.cover,
+                // Manejo de error si la imagen no carga
+                onError: (exception, stackTrace) {
+                  // Puedes poner un placeholder aquí si quieres
+                }
               ),
             ),
           ),
@@ -277,7 +410,9 @@ class ChefProfileScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    titles[index],
+                    recipe.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   SizedBox(height: 6),
@@ -286,7 +421,7 @@ class ChefProfileScreen extends StatelessWidget {
                       Icon(Icons.access_time, size: 14, color: Colors.grey),
                       SizedBox(width: 4),
                       Text(
-                        times[index],
+                        "${recipe.timeMinutes} min",
                         style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ],
@@ -294,8 +429,8 @@ class ChefProfileScreen extends StatelessWidget {
                   Spacer(),
                   Row(
                     children: [
-                      Icon(Icons.star, size: 16, color: brandColor), // Estrella naranja
-                      Text(" 4.8", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      Icon(Icons.star, size: 16, color: brandColor),
+                      Text(" ${recipe.rating}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   )
                 ],
