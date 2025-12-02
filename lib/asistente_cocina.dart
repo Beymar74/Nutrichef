@@ -25,6 +25,7 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
   bool _isListening = false;
   StreamSubscription? _speechSubscription;
   StreamSubscription? _listeningSubscription;
+  GlobalKey<_TemporizadorState>? _temporizadorKey;
 
   @override
   void initState() {
@@ -38,7 +39,6 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
   }
 
   Future<void> _inicializarAsistenteVoz() async {
-
     final status = await Permission.microphone.request();
     
     if (status == PermissionStatus.granted) {
@@ -100,6 +100,12 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
       case 'temporizador':
         _iniciarTemporizador();
         break;
+      case 'pausar temporizador':
+        _pausarTemporizador();
+        break;
+      case 'reiniciar temporizador':
+        _reiniciarTemporizador();
+        break;
       case 'repetir':
         _repetirPaso();
         break;
@@ -116,7 +122,17 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
         _finalizarReceta();
         break;
       default:
-        _voiceService?.speak('No entendí ese comando. Intenta decir siguiente, anterior, o repetir.');
+        if (comando.contains('temporizador')) {
+          if (comando.contains('pausar')) {
+            _pausarTemporizador();
+          } else if (comando.contains('reiniciar')) {
+            _reiniciarTemporizador();
+          } else {
+            _iniciarTemporizador();
+          }
+        } else {
+          _voiceService?.speak('No entendí ese comando. Intenta decir siguiente, anterior, o repetir.');
+        }
     }
   }
 
@@ -187,6 +203,43 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
     final paso = widget.receta.preparacion[_pasoActual];
     if (paso.tiempo != null) {
       await _voiceService?.speak('Iniciando temporizador de ${paso.tiempo} minutos.');
+      
+      if (_temporizadorKey?.currentState != null) {
+        print('Iniciando temporizador desde comando de voz');
+        _temporizadorKey!.currentState!.iniciar();
+      } else {
+        print('ERROR: No se pudo acceder al temporizador');
+        await _voiceService?.speak('No se pudo iniciar el temporizador. Intenta nuevamente.');
+      }
+    } else {
+      await _voiceService?.speak('Este paso no tiene un tiempo definido.');
+    }
+  }
+
+  void _pausarTemporizador() async {
+    await _voiceService?.speak('Pausando temporizador.');
+    
+    if (_temporizadorKey?.currentState != null) {
+      print('Pausando temporizador desde comando de voz');
+      _temporizadorKey!.currentState!.pausar();
+    } else {
+      print('ERROR: No se pudo acceder al temporizador');
+      await _voiceService?.speak('No se pudo pausar el temporizador. Intenta nuevamente.');
+    }
+  }
+
+  void _reiniciarTemporizador() async {
+    final paso = widget.receta.preparacion[_pasoActual];
+    if (paso.tiempo != null) {
+      await _voiceService?.speak('Reiniciando temporizador de ${paso.tiempo} minutos.');
+      
+      if (_temporizadorKey?.currentState != null) {
+        print('Reiniciando temporizador desde comando de voz');
+        _temporizadorKey!.currentState!.reiniciar();
+      } else {
+        print('ERROR: No se pudo acceder al temporizador');
+        await _voiceService?.speak('No se pudo reiniciar el temporizador. Intenta nuevamente.');
+      }
     } else {
       await _voiceService?.speak('Este paso no tiene un tiempo definido.');
     }
@@ -202,12 +255,27 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
     _voiceService?.startListening();
   }
 
-  void _finalizarReceta() {
+  void _finalizarReceta() async {
     if (_pasoActual == widget.receta.preparacion.length - 1) {
-      _voiceService?.speak('¡Felicitaciones! Has completado la receta. Espero que disfrutes tu comida.');
-      Future.delayed(const Duration(seconds: 3), () {
+      if (_voiceService != null) {
+        _voiceService!.stopListening();
+      }
+      
+      await _voiceService?.speak('¡Felicitaciones! Has completado la receta. Espero que disfrutes tu comida.');
+      
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (_voiceService != null) {
+        _voiceService!.dispose();
+        _voiceService = null;
+      }
+      
+      _speechSubscription?.cancel();
+      _listeningSubscription?.cancel();
+      
+      if (mounted) {
         Navigator.pop(context);
-      });
+      }
     }
   }
 
@@ -352,7 +420,6 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
                 children: [
                   const SizedBox(height: 20),
                   
-                  // Imagen/GIF del paso
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(20),
@@ -387,7 +454,6 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
 
                   const SizedBox(height: 24),
                   
-                  // Ingredientes del paso
                   if (paso.ingredientes.isNotEmpty) ...[
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -541,10 +607,11 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
                         ],
                       ),
                       child: _Temporizador(
+                        key: _temporizadorKey ??= GlobalKey<_TemporizadorState>(),
                         minutos: paso.tiempo!,
                         onComplete: () async {
-                          if (_isVoiceActive) {
-                            await _voiceService?.speak('El temporizador ha terminado. Di siguiente cuando estés listo.');
+                          if (_isVoiceActive && _voiceService != null) {
+                            await _voiceService!.speak('El temporizador ha terminado. Di siguiente cuando estés listo.');
                           }
                         },
                       ),
@@ -584,6 +651,8 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
                             '• "Anterior"\n'
                             '• "Repetir" o "Explica otra vez"\n'
                             '• "Iniciar temporizador"\n'
+                            '• "Pausar temporizador"\n'
+                            '• "Reiniciar temporizador"\n'
                             '• "Pausar" / "Continuar"\n'
                             '• "Finalizar"',
                             style: TextStyle(
@@ -697,7 +766,7 @@ class _AsistenteCocinaScreenState extends State<AsistenteCocinaScreen> {
                           children: [
                             Icon(Icons.celebration, color: Color(0xFFFF8C42)),
                             SizedBox(width: 8),
-                            Text('¡Felicitaciones! 🎉'),
+                            Text('¡Felicitaciones!'),
                           ],
                         ),
                         content: const Text('Has completado la receta con éxito.'),
@@ -892,12 +961,13 @@ class _Temporizador extends StatefulWidget {
   final VoidCallback? onComplete;
 
   const _Temporizador({
+    Key? key,
     required this.minutos,
     this.onComplete,
-  });
+  }) : super(key: key);
 
   @override
-  State<_Temporizador> createState() => _TemporizadorState();
+  _TemporizadorState createState() => _TemporizadorState();
 }
 
 class _TemporizadorState extends State<_Temporizador> {
@@ -915,6 +985,22 @@ class _TemporizadorState extends State<_Temporizador> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  void iniciar() {
+    if (!_isRunning) {
+      _iniciarPausar();
+    }
+  }
+
+  void pausar() {
+    if (_isRunning) {
+      _iniciarPausar();
+    }
+  }
+
+  void reiniciar() {
+    _reiniciar();
   }
 
   void _iniciarPausar() {
@@ -953,7 +1039,7 @@ class _TemporizadorState extends State<_Temporizador> {
           children: [
             Icon(Icons.timer, color: Color(0xFFFF8C42)),
             SizedBox(width: 8),
-            Text('⏰ ¡Tiempo completado!'),
+            Text('¡Tiempo completado!'),
           ],
         ),
         content: const Text('El temporizador ha finalizado.'),

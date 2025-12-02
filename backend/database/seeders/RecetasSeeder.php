@@ -160,6 +160,7 @@ class RecetasSeeder extends Seeder
         /* ============================================================
            3) RECETAS
         ============================================================ */
+    
         DB::table('recetas')->insertOrIgnore([
             // RECETAS ORIGINALES (1-4)
             [
@@ -170,7 +171,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Ensalada de Quinoa Vegana',
                 'resumen'=>'Ensalada fresca con quinoa y vegetales.',
                 'tiempo_preparacion'=>20,
-                'preparacion'=>'1. Cocinar la quinoa. 2. Mezclar con vegetales. 3. Servir fría.',
+                'preparacion'=>'1. Enjuaga la quinoa bajo agua fría durante 1 minuto para eliminar el sabor amargo natural. Luego colócala en una olla con el doble de agua y llévala a hervir. Reduce a fuego bajo, tapa y cocina durante 12 minutos hasta que absorba toda el agua. Deja reposar 5 minutos y esponja con un tenedor. 2. Lava y corta el tomate, el pepino y la cebolla morada en trozos pequeños; mezcla todo en un bowl amplio. 3. Agrega la quinoa ya fría, aliña con limón, aceite de oliva, sal y pimienta; mezcla suavemente y sirve fría.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -183,7 +184,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Pollo a la Plancha con Verduras',
                 'resumen'=>'Pollo marinado y verduras salteadas.',
                 'tiempo_preparacion'=>30,
-                'preparacion'=>'1. Sazonar pollo. 2. Cocinar. 3. Saltear verduras.',
+                'preparacion'=>'1. Sazona las pechugas de pollo con sal, pimienta, ajo en polvo y un chorrito de limón; deja reposar 10 minutos para que absorba el sabor. 2. Calienta una plancha o sartén antiadherente a fuego medio-alto y cocina el pollo por ambos lados hasta dorar y asegurar una cocción interna completa. 3. En otra sartén, saltea las verduras cortadas (pimiento, cebolla, calabacín o las que prefieras) con un poco de aceite y sal hasta que estén tiernas pero aún crujientes; sirve el pollo sobre la cama de verduras.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -196,7 +197,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Smoothie Energético',
                 'resumen'=>'Batido nutritivo y refrescante.',
                 'tiempo_preparacion'=>5,
-                'preparacion'=>'1. Licuar todos los ingredientes. 2. Servir frío.',
+                'preparacion'=>'1. Coloca todos los ingredientes (frutas, yogur o leche vegetal, semillas y hielo) en una licuadora potente. 2. Licúa a velocidad alta durante 30 segundos hasta obtener una textura completamente homogénea y cremosa. 3. Sirve inmediatamente en un vaso frío para conservar la frescura y el valor nutricional.',
                 'porciones_estimadas'=>1,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -209,13 +210,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Sopa de Verduras',
                 'resumen'=>'Sopa ligera y reconfortante.',
                 'tiempo_preparacion'=>40,
-                'preparacion'=>'1. Cortar verduras. 2. Cocer. 3. Condimentar.',
+                'preparacion'=>'1. Lava, pela y corta todas las verduras (zanahoria, papa, cebolla, apio, etc.) en cubos medianos para una cocción uniforme. 2. En una olla grande calienta un poco de aceite y sofríe cebolla y ajo hasta que estén fragantes. 3. Agrega las demás verduras, cubre con caldo y cocina a fuego medio durante 25 minutos o hasta que las verduras estén suaves. 4. Ajusta sal, pimienta y hierbas al gusto; sirve caliente.',
                 'porciones_estimadas'=>4,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
-            
-            // NUEVAS RECETAS (5-24)
+
             [
                 'id'=>5,
                 'id_usuario_creador'=>1,
@@ -224,11 +224,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Bowl de Arroz Integral con Salmón',
                 'resumen'=>'Bowl nutritivo con salmón y vegetales frescos.',
                 'tiempo_preparacion'=>35,
-                'preparacion'=>'1. Cocinar arroz integral. 2. Hornear salmón con limón. 3. Cortar aguacate y vegetales. 4. Ensamblar el bowl.',
+                'preparacion'=>'1. Cocina el arroz integral según las instrucciones, generalmente 40 minutos en agua hirviendo con una pizca de sal. 2. Marina el salmón con limón, sal, pimienta y hornea a 180°C durante 15 minutos hasta que esté jugoso. 3. Corta aguacate, pepino y vegetales frescos en dados. 4. Sirve el arroz como base, agrega el salmón desmenuzado y distribuye los vegetales alrededor para formar el bowl.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
+            
             [
                 'id'=>6,
                 'id_usuario_creador'=>1,
@@ -237,11 +238,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Ensalada de Lentejas',
                 'resumen'=>'Ensalada proteica con lentejas y vegetales.',
                 'tiempo_preparacion'=>25,
-                'preparacion'=>'1. Cocer lentejas. 2. Picar tomate, pepino y cebolla. 3. Mezclar con vinagreta. 4. Refrigerar.',
+                'preparacion'=>'1. Cocina las lentejas previamente lavadas en agua hirviendo con sal durante 20 minutos hasta que estén tiernas pero firmes. 2. Pica tomate, pepino, cebolla y perejil en trozos pequeños. 3. Mezcla todo en un bowl y agrega una vinagreta de limón, aceite de oliva y sal. 4. Refrigera al menos 20 minutos para intensificar el sabor.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
+
             [
                 'id'=>7,
                 'id_usuario_creador'=>1,
@@ -250,11 +252,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Tacos de Garbanzos Especiados',
                 'resumen'=>'Tacos veganos con garbanzos crujientes.',
                 'tiempo_preparacion'=>20,
-                'preparacion'=>'1. Tostar garbanzos con especias. 2. Preparar vegetales. 3. Calentar tortillas. 4. Armar tacos.',
+                'preparacion'=>'1. Escurre y seca muy bien los garbanzos; mézclalos con aceite, pimentón, comino, sal y pimienta, luego hornéalos 15 minutos o saltéalos hasta dorar. 2. Corta repollo, tomate y cebolla en tiras finas. 3. Calienta las tortillas en un sartén. 4. Arma los tacos colocando garbanzos, vegetales y un aderezo ligero.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
+
             [
                 'id'=>8,
                 'id_usuario_creador'=>1,
@@ -263,11 +266,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Tortilla de Espinacas',
                 'resumen'=>'Tortilla esponjosa con espinaca fresca.',
                 'tiempo_preparacion'=>15,
-                'preparacion'=>'1. Saltear espinaca. 2. Batir huevos. 3. Mezclar y cocinar. 4. Servir caliente.',
+                'preparacion'=>'1. Saltea la espinaca lavada en una sartén con un poco de aceite hasta reducir su volumen. 2. Bate los huevos con sal y pimienta, añade la espinaca y mezcla bien. 3. Vierte en una sartén caliente y cocina a fuego medio hasta cuajar por ambos lados. 4. Sirve caliente.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
+
             [
                 'id'=>9,
                 'id_usuario_creador'=>1,
@@ -276,11 +280,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Ensalada de Atún Mediterránea',
                 'resumen'=>'Ensalada fresca con atún y aceitunas.',
                 'tiempo_preparacion'=>10,
-                'preparacion'=>'1. Mezclar atún con vegetales. 2. Agregar aceite de oliva. 3. Sazonar. 4. Servir.',
+                'preparacion'=>'1. Abre el atún, escúrrelo y colócalo en un bowl. 2. Agrega tomate picado, pepino, aceitunas negras y cebolla en rodajas delgadas. 3. Mezcla con aceite de oliva, limón, sal y orégano. 4. Sirve inmediatamente.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
+
             [
                 'id'=>10,
                 'id_usuario_creador'=>1,
@@ -289,7 +294,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Camote Horneado con Especias',
                 'resumen'=>'Camote asado con hierbas aromáticas.',
                 'tiempo_preparacion'=>45,
-                'preparacion'=>'1. Cortar camote. 2. Sazonar con especias. 3. Hornear a 200°C. 4. Servir.',
+                'preparacion'=>'1. Lava y corta el camote en cubos medianos. 2. Mezcla con aceite, paprika, romero, sal y pimienta. 3. Distribuye en una bandeja y hornea a 200°C durante 35 minutos, revolviendo a la mitad. 4. Sirve caliente.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -302,7 +307,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Granola Casera con Frutos Secos',
                 'resumen'=>'Granola crujiente con miel y almendras.',
                 'tiempo_preparacion'=>30,
-                'preparacion'=>'1. Mezclar avena, frutos secos y miel. 2. Hornear. 3. Enfriar. 4. Almacenar.',
+                'preparacion'=>'1. En un bowl grande mezcla avena, almendras picadas, nueces y semillas al gusto. 2. Calienta en una olla pequeña miel y aceite de coco hasta integrar, luego viértelo sobre la mezcla y revuelve para cubrir uniformemente. 3. Extiende la mezcla en una bandeja y hornea a 160°C por 20 minutos, revolviendo a mitad del tiempo para asegurar un tostado parejo. 4. Deja enfriar por completo para que quede crujiente y almacena en un frasco hermético.',
                 'porciones_estimadas'=>8,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -315,7 +320,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Pudding de Chía con Mango',
                 'resumen'=>'Postre saludable con semillas de chía.',
                 'tiempo_preparacion'=>125,
-                'preparacion'=>'1. Mezclar chía con leche de almendra. 2. Refrigerar 2 horas. 3. Agregar mango. 4. Servir frío.',
+                'preparacion'=>'1. Mezcla en un vaso o bowl las semillas de chía con leche de almendra y endulzante si lo deseas. 2. Revuelve bien los primeros minutos para evitar que se formen grumos y luego tapa y refrigera durante al menos 2 horas para que espese. 3. Corta el mango en cubos pequeños o procésalo para hacer un puré suave. 4. Sirve colocando la chía ya gelificada en el fondo y el mango fresco encima.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -328,7 +333,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Wrap de Pollo con Aguacate',
                 'resumen'=>'Wrap saludable con pollo y vegetales.',
                 'tiempo_preparacion'=>15,
-                'preparacion'=>'1. Cocinar pollo. 2. Preparar aguacate. 3. Calentar tortilla. 4. Armar wrap.',
+                'preparacion'=>'1. Cocina la pechuga de pollo a la plancha con sal, pimienta y un chorrito de limón hasta que esté dorada y jugosa; luego córtala en tiras. 2. Aplasta el aguacate con un tenedor, añade limón, sal y pimienta para crear un untado cremoso. 3. Calienta la tortilla de trigo o integral en un sartén. 4. Unta el aguacate, agrega pollo, lechuga, tomate y enrolla firmemente antes de servir.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -341,7 +346,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Sopa de Lentejas con Vegetales',
                 'resumen'=>'Sopa reconfortante y nutritiva.',
                 'tiempo_preparacion'=>50,
-                'preparacion'=>'1. Saltear cebolla y ajo. 2. Agregar lentejas y caldo. 3. Cocer vegetales. 4. Servir caliente.',
+                'preparacion'=>'1. Sofríe cebolla y ajo picados en una olla grande hasta que estén dorados y fragantes. 2. Añade las lentejas lavadas, zanahoria picada, apio y papa en cubos; mezcla bien. 3. Cubre con caldo y cocina a fuego medio durante 35 minutos o hasta que las lentejas estén suaves. 4. Ajusta condimentos y sirve caliente.',
                 'porciones_estimadas'=>4,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -354,7 +359,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Berenjena a la Parmesana Light',
                 'resumen'=>'Berenjena horneada con queso bajo en grasa.',
                 'tiempo_preparacion'=>55,
-                'preparacion'=>'1. Cortar berenjena. 2. Hornear. 3. Agregar salsa de tomate. 4. Gratinar.',
+                'preparacion'=>'1. Corta las berenjenas en rodajas y espolvorea sal para que suelten humedad durante 15 minutos; sécalas bien. 2. Acomódalas en una bandeja, rocíalas con un poco de aceite y hornea 20 minutos a 180°C. 3. En una fuente coloca capas de berenjena, salsa de tomate casera y queso parmesano bajo en grasa. 4. Hornea nuevamente 10 minutos hasta gratinar.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -367,7 +372,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Bowl Tropical de Frutas',
                 'resumen'=>'Bowl refrescante con frutas tropicales.',
                 'tiempo_preparacion'=>10,
-                'preparacion'=>'1. Cortar frutas. 2. Agregar yogur. 3. Añadir granola. 4. Servir frío.',
+                'preparacion'=>'1. Lava y corta mango, piña, kiwi y plátano en cubos pequeños. 2. Coloca yogur natural o griego en un bowl como base. 3. Añade las frutas por encima de forma ordenada y finaliza con granola o semillas para dar textura. 4. Sirve frío.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -380,7 +385,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Pasta Integral con Vegetales',
                 'resumen'=>'Pasta saludable con salsa de vegetales.',
                 'tiempo_preparacion'=>25,
-                'preparacion'=>'1. Cocer pasta. 2. Saltear vegetales. 3. Preparar salsa. 4. Mezclar y servir.',
+                'preparacion'=>'1. Cocina la pasta integral en agua hirviendo con sal durante 8 minutos. 2. Saltea vegetales como pimiento, calabacín, zanahoria y champiñones hasta que estén tiernos. 3. Añade una salsa ligera hecha con tomate triturado y especias. 4. Mezcla la pasta con la salsa y sirve.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -393,7 +398,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Albóndigas de Pavo al Horno',
                 'resumen'=>'Albóndigas saludables con salsa de tomate.',
                 'tiempo_preparacion'=>40,
-                'preparacion'=>'1. Formar albóndigas. 2. Hornear. 3. Preparar salsa. 4. Combinar y servir.',
+                'preparacion'=>'1. Mezcla carne molida de pavo con huevo, avena, ajo, sal y pimienta; forma albóndigas del tamaño de una cucharada. 2. Acomódalas en una bandeja y hornéalas durante 20 minutos a 180°C. 3. Mientras, prepara una salsa ligera de tomate con cebolla, ajo y especias. 4. Combina las albóndigas con la salsa y sirve caliente.',
                 'porciones_estimadas'=>4,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -406,7 +411,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Risotto de Calabacín Light',
                 'resumen'=>'Risotto cremoso con calabacín.',
                 'tiempo_preparacion'=>35,
-                'preparacion'=>'1. Saltear cebolla. 2. Agregar arroz. 3. Añadir caldo gradualmente. 4. Incorporar calabacín.',
+                'preparacion'=>'1. Sofríe cebolla picada hasta que esté transparente. 2. Agrega el arroz arborio y tuéstalo por 1 minuto. 3. Añade caldo caliente poco a poco removiendo continuamente hasta que el arroz esté cremoso. 4. Incorpora calabacín rallado al final y mezcla bien antes de servir.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -419,7 +424,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Smoothie Bowl de Arándanos',
                 'resumen'=>'Bowl cremoso con arándanos y toppings.',
                 'tiempo_preparacion'=>10,
-                'preparacion'=>'1. Licuar arándanos con plátano. 2. Verter en bowl. 3. Agregar toppings. 4. Servir inmediato.',
+                'preparacion'=>'1. Licúa arándanos congelados con plátano y un chorrito de leche vegetal hasta obtener una mezcla espesa. 2. Vierte en un bowl. 3. Agrega toppings como frutas frescas, granola o semillas. 4. Sirve de inmediato para mantener la textura.',
                 'porciones_estimadas'=>1,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -432,7 +437,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Ensalada César Light',
                 'resumen'=>'Versión saludable de la ensalada César.',
                 'tiempo_preparacion'=>15,
-                'preparacion'=>'1. Preparar aderezo light. 2. Tostar pollo. 3. Mezclar con lechuga. 4. Servir.',
+                'preparacion'=>'1. Prepara un aderezo light mezclando yogur griego, limón, mostaza, ajo en polvo y sal. 2. Cocina el pollo a la plancha y córtalo en tiras. 3. Mezcla la lechuga con el aderezo y añade el pollo encima. 4. Termina con crutones integrales opcionales.',
                 'porciones_estimadas'=>2,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -445,7 +450,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Hamburguesa de Garbanzos',
                 'resumen'=>'Hamburguesa vegana de garbanzos.',
                 'tiempo_preparacion'=>30,
-                'preparacion'=>'1. Triturar garbanzos. 2. Formar hamburguesas. 3. Cocinar a la plancha. 4. Servir en pan integral.',
+                'preparacion'=>'1. Tritura los garbanzos cocidos con cebolla, ajo, avena y especias hasta formar una pasta manejable. 2. Forma hamburguesas del tamaño deseado. 3. Cocínalas en una plancha con un poco de aceite hasta que estén doradas por ambos lados. 4. Sírvelas en pan integral con vegetales frescos.',
                 'porciones_estimadas'=>4,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -458,7 +463,7 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Ceviche de Salmón',
                 'resumen'=>'Ceviche fresco con salmón y limón.',
                 'tiempo_preparacion'=>130,
-                'preparacion'=>'1. Cortar salmón en cubos. 2. Marinar con limón. 3. Agregar cebolla y cilantro. 4. Refrigerar 2 horas.',
+                'preparacion'=>'1. Corta el salmón fresco en cubos pequeños y colócalo en un bowl. 2. Cubre con abundante jugo de limón y deja marinar en el refrigerador durante 2 horas hasta que cambie de color. 3. Agrega cebolla morada en tiras, cilantro picado y pepino en cubos. 4. Mezcla suavemente y sirve frío.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
@@ -471,11 +476,12 @@ class RecetasSeeder extends Seeder
                 'titulo'=>'Rollos de Calabacín con Ricotta',
                 'resumen'=>'Rollos de calabacín rellenos de queso.',
                 'tiempo_preparacion'=>45,
-                'preparacion'=>'1. Cortar calabacín en láminas. 2. Preparar relleno. 3. Enrollar. 4. Hornear.',
+                'preparacion'=>'1. Corta el calabacín en láminas finas usando una mandolina o cuchillo afilado. 2. Mézclalo con sal y deja reposar 10 minutos para que suelte agua; sécalo bien. 3. Prepara un relleno de ricotta con hierbas, sal y pimienta. 4. Coloca un poco de mezcla sobre cada lámina, enrolla con cuidado y hornea 12 minutos a 180°C.',
                 'porciones_estimadas'=>3,
                 'created_at'=>$now,
                 'updated_at'=>$now
             ],
+
         ]);
 
         /* ============================================================

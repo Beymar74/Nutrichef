@@ -33,7 +33,6 @@ class VoiceAssistantService {
         if (status == 'notListening' && _isInitialized && !_isListening && !_isSpeaking) {
           Future.delayed(const Duration(milliseconds: 1000), () {
             if (_isInitialized && !_isListening && !_isSpeaking) {
-              print('🔄 Reiniciando por estado notListening');
               startListening();
             }
           });
@@ -41,15 +40,25 @@ class VoiceAssistantService {
       },
       onError: (error) {
         print('Error en reconocimiento de voz: $error');
-        if (error.errorMsg != 'error_speech_timeout' && 
-            error.errorMsg != 'error_no_match') {
+        
+        // Manejo ESPECÍFICO para error_speech_timeout
+        if (error.errorMsg == 'error_speech_timeout') {
+          print('Timeout de reconocimiento - reactivando micrófono...');
           _isListening = false;
           _listeningController.add(false);
-        }
-        if (!_isSpeaking) {
+          
+          // Reactivar más rápido para este error
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (_isInitialized && !_isListening && !_isSpeaking) {
+              startListening();
+            }
+          });
+        } else if (error.errorMsg != 'error_no_match') {
+          _isListening = false;
+          _listeningController.add(false);
+          
           Future.delayed(const Duration(milliseconds: 1500), () {
             if (_isInitialized && !_isListening && !_isSpeaking) {
-              print('Reiniciando después de error');
               startListening();
             }
           });
@@ -70,17 +79,26 @@ class VoiceAssistantService {
     _flutterTts.setCompletionHandler(() {
       print('TTS completado');
       _isSpeaking = false;
-      Future.delayed(const Duration(milliseconds: 800), () {
+      
+      // Esperar 1.2 segundos ANTES de reactivar
+      Future.delayed(const Duration(milliseconds: 1200), () {
         if (_isInitialized && !_isListening && !_isSpeaking) {
-          print('Reactivando micrófono automáticamente después de TTS');
+          print('Reactivando micrófono después de hablar');
           startListening();
         }
       });
     });
     
     _flutterTts.setErrorHandler((msg) {
-      print(' Error en TTS: $msg');
+      print('Error en TTS: $msg');
       _isSpeaking = false;
+      
+      // Reactivar micrófono si hay error en TTS
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (_isInitialized && !_isListening && !_isSpeaking) {
+          startListening();
+        }
+      });
     });
 
     _isInitialized = true;
@@ -95,19 +113,10 @@ class VoiceAssistantService {
       }
       
       _isSpeaking = true;
-      print('🔊 Hablando: $text');
+      print('Hablando: $text');
       await _flutterTts.speak(text);
       
-      await _flutterTts.awaitSpeakCompletion(true);
-      
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      _isSpeaking = false;
-      
-      if (_isInitialized && !_isListening) {
-        print('Reactivando micrófono después de hablar');
-        startListening();
-      }
+      // El micrófono se reactivará automáticamente en el completion handler
     }
   }
 
@@ -118,34 +127,20 @@ class VoiceAssistantService {
 
   void startListening() {
     if (!_isListening && _isInitialized && !_isSpeaking) {
-      print('🎤 Iniciando escucha...');
+      print('Iniciando escucha...');
       _speech.listen(
         onResult: (result) {
-          String speech = result.recognizedWords.toLowerCase().trim();
-          //consola para ver resultados
+          String speech = result.recognizedWords.trim();
+          
           if (result.finalResult) {
-            print('FINAL: $speech');
-            
-            if (speech.length > 2 && interpretarComando(speech)) {
-              print('Comando válido detectado: $speech');
-              _speechController.add(speech);
-            } else {
-              print('Comando no reconocido o ruido: $speech');
-            }
-            
-            Future.delayed(const Duration(milliseconds: 800), () {
-              if (!_isListening && _isInitialized && !_isSpeaking) {
-                print('🔄 Reiniciando escucha automática');
-                startListening();
-              }
-            });
+            _procesarResultadoFinal(speech);
           } else {
             if (speech.isNotEmpty) {
-              print('🔊 Escuchando: $speech');
+              print('Escuchando: $speech');
             }
           }
         },
-        listenFor: const Duration(seconds: 20),
+        listenFor: const Duration(seconds: 10),
         pauseFor: const Duration(seconds: 3),
         partialResults: true,
         localeId: 'es-ES',
@@ -154,17 +149,30 @@ class VoiceAssistantService {
       );
       _isListening = true;
       _listeningController.add(true);
-      print('✅ Micrófono activado');
+      print('Micrófono activado');
+    }
+  }
+
+  void _procesarResultadoFinal(String speech) {
+    speech = speech.toLowerCase().trim();
+    print('Resultado final recibido: "$speech"');
+    
+    if (speech.isEmpty || speech.length < 4) {
+      print('Ignorado: texto muy corto');
+      return;
+    }
+    
+    if (interpretarComando(speech)) {
+      print('Comando válido detectado: $speech');
+      _speechController.add(speech);
     } else {
-      if (_isSpeaking) {
-        print('⏸️ No se inicia escucha porque está hablando');
-      }
+      print('No es un comando válido: $speech');
     }
   }
 
   void stopListening() {
     if (_isListening) {
-      print('🛑 Deteniendo micrófono');
+      print('Deteniendo micrófono');
       _speech.stop();
       _isListening = false;
       _listeningController.add(false);
@@ -175,7 +183,7 @@ class VoiceAssistantService {
     comando = comando.toLowerCase().trim();
     
     final List<String> palabrasClave = [
-      'empezar', 'empezar', 'iniciar', 'inicio',
+      'empezar', 'iniciar', 'inicio',
       'siguiente', 'continuar', 'continua', 'sigue',
       'anterior', 'atrás', 'atras', 'volver',
       'temporizador', 'cronómetro', 'cronometro', 'timer',
@@ -196,30 +204,57 @@ class VoiceAssistantService {
   String normalizarComando(String comando) {
     comando = comando.toLowerCase().trim();
     
-    if (comando.contains('empezar') || comando.contains('empezar')) {
+    if (comando.contains('temporizador') || 
+        comando.contains('cronómetro') || 
+        comando.contains('cronometro') || 
+        comando.contains('timer')) {
+      
+      if (comando.contains('pausar') || comando.contains('pausa') || 
+          comando.contains('detener') || comando.contains('para')) {
+        return 'pausar temporizador';
+      }
+      
+      if (comando.contains('reiniciar') || comando.contains('reinicia')) {
+        return 'reiniciar temporizador';
+      }
+      
+      // "iniciar temporizador" retorna "temporizador"
+      if (comando.contains('iniciar') || comando.contains('comenzar') || 
+          comando.contains('empezar') || comando.contains('arrancar')) {
+        return 'temporizador';
+      }
+      
+      return 'temporizador';
+    }
+    
+    // Solo si NO es comando de temporizador
+    if ((comando.contains('empezar') || comando.contains('iniciar')) && 
+        !comando.contains('temporizador')) {
       return 'empezar';
     }
-    if (comando.contains('iniciar') && !comando.contains('temporizador')) {
-      return 'empezar';
-    }
+    
     if (comando.contains('siguiente') || comando.contains('continuar') || comando.contains('continua')) {
       return 'siguiente';
     }
+    
     if (comando.contains('anterior') || comando.contains('atrás') || comando.contains('atras')) {
       return 'anterior';
     }
-    if (comando.contains('temporizador') || comando.contains('cronómetro') || comando.contains('cronometro')) {
-      return 'temporizador';
-    }
+    
     if (comando.contains('listo') || comando.contains('terminado')) {
       return 'listo';
     }
+    
     if (comando.contains('pausar') || comando.contains('pausa') || comando.contains('detener')) {
-      return 'pausar';
+      if (!comando.contains('temporizador')) {
+        return 'pausar';
+      }
     }
+    
     if (comando.contains('repetir') || comando.contains('otra vez') || comando.contains('de nuevo')) {
       return 'repetir';
     }
+    
     if (comando.contains('finalizar') || comando.contains('terminar') || comando.contains('salir')) {
       return 'finalizar';
     }
@@ -228,6 +263,7 @@ class VoiceAssistantService {
   }
 
   void dispose() {
+    // Solo detener completamente al final
     stopListening();
     stopSpeaking();
     _speechController.close();
