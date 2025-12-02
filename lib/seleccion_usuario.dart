@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login.dart';
 import 'registro.dart';
+import 'bienvenida.dart';
 
 class SeleccionUsuario extends StatelessWidget {
   const SeleccionUsuario({super.key});
@@ -24,7 +25,9 @@ class SeleccionUsuario extends StatelessWidget {
                     size: 28,
                   ),
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const Bienvenida()),
+                    );
                   },
                 ),
               ),

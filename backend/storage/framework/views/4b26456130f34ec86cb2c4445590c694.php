@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Perfil de Usuario'); ?>
 <?php $__env->startSection('titulo_pagina', 'Detalle de Usuario'); ?>
 

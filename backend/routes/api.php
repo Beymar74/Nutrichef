@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Api\SolicitudChefController; 
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\ChefController;
 use App\Http\Controllers\FollowController;
@@ -43,19 +44,20 @@ Route::post('/recuperar-password/cambiar',          [PasswordResetController::cl
 // ==========================
 // 🔓 PERFIL (ACCESO HÍBRIDO)
 // ==========================
-// ✅ CORRECCIÓN: Esta ruta ahora está FUERA del middleware sanctum.
-// Esto permite que el Chef guarde su perfil enviando su ID manualmente.
-Route::put('/usuario/perfil',      [AuthController::class, 'actualizarPerfil']);
+Route::put('/usuario/perfil', [AuthController::class, 'actualizarPerfil']);
 
 
 // ==========================
 // 🛡️ RUTAS PROTEGIDAS (Solo Token)
 // ==========================
 Route::middleware('auth:sanctum')->group(function () {
-    // La ruta de perfil ya NO está aquí adentro
-    Route::put('/perfil/dieta',            [PerfilController::class, 'actualizarDieta']);
-    Route::put('/perfil/nivel-cocina',     [PerfilController::class, 'actualizarNivelCocina']);
-    Route::put('/perfil/alergias',         [PerfilController::class, 'actualizarAlergias']);
+    Route::put('/perfil/dieta',         [PerfilController::class, 'actualizarDieta']);
+    Route::put('/perfil/nivel-cocina',  [PerfilController::class, 'actualizarNivelCocina']);
+    Route::put('/perfil/alergias',      [PerfilController::class, 'actualizarAlergias']);
+    
+    // Solicitudes Chef
+    Route::post('/solicitudes-chef',     [SolicitudChefController::class, 'store']);
+    Route::get('/mis-solicitudes-chef',  [SolicitudChefController::class, 'misSolicitudes']);
     
     Route::post('/logout', function (Request $request) {
         $request->user()->tokens()->delete();
@@ -67,11 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // ==========================
 // 👨‍🍳 GESTIÓN DE RECETAS (CRUD Completo)
 // ==========================
-Route::get('/recetas',       [RecetaController::class, 'index']);
-Route::post('/recetas',      [RecetaController::class, 'store']);
-Route::get('/recetas/{id}',  [RecetaController::class, 'show']);
-Route::put('/recetas/{id}',  [RecetaController::class, 'update']);
-Route::delete('/recetas/{id}', [RecetaController::class, 'destroy']);
+Route::get('/recetas',           [RecetaController::class, 'index']);
+Route::post('/recetas',          [RecetaController::class, 'store']);
+Route::get('/recetas/{id}',      [RecetaController::class, 'show']);
+Route::put('/recetas/{id}',      [RecetaController::class, 'update']);
+Route::delete('/recetas/{id}',   [RecetaController::class, 'destroy']);
 
 
 // ==========================
@@ -87,7 +89,6 @@ Route::post('/buscar-recetas',           [IAController::class, 'buscarPorIngredi
 Route::get('/ingredientes/listar', [IAController::class, 'listarIngredientes']);
 Route::get('/unidades/listar',     [IAController::class, 'listarUnidades']);
 
-// Estadísticas Mock (Para el dashboard)
 Route::get('/chefs/{id}/estadisticas', function ($id) {
     return response()->json([
         'total_visualizaciones' => 150,
@@ -97,7 +98,6 @@ Route::get('/chefs/{id}/estadisticas', function ($id) {
     ]);
 });
 
-// Catálogos Genéricos
 Route::get('/catalogos/{dominio}', function ($dominio) {
     return response()->json([]);
 });
@@ -109,6 +109,5 @@ Route::get('/catalogos/{dominio}', function ($dominio) {
 Route::get('/chefs/{id}', [ChefController::class, 'show']);
 Route::get('/imagenes/recetas/{id}', [ChefController::class, 'getRecipeImage'])->name('recetas.imagen');
 
-// Seguidores
 Route::post('/chefs/{id}/follow', [FollowController::class, 'toggleFollow']);
 Route::get('/chefs/{id}/is-following', [FollowController::class, 'checkFollowStatus']);

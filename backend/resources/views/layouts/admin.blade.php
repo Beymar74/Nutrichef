@@ -107,12 +107,12 @@
                     <span>Comentarios</span>
                 </a>
                 
-                <!-- Planificación -->
-                <a href="{{ route('admin.planificacion.index') }}" 
-                   class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
-                   {{ request()->routeIs('admin.planificacion.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
-                    <i data-lucide="calendar" class="w-5 h-5 {{ request()->routeIs('admin.planificacion.*') ? '' : 'group-hover:text-calabaza-500 transition-colors' }}"></i>
-                    <span>Planificación</span>
+                <!-- ✅ DESPUÉS (Correcto) -->
+                <a href="{{ route('admin.solicitudes.index') }}" 
+                class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group 
+                {{ request()->routeIs('admin.solicitudes.*') ? 'bg-calabaza-600 text-white shadow-md shadow-calabaza-900/20 transform hover:-translate-y-0.5' : 'text-ambar-50 hover:bg-ambar-900/50 hover:text-white' }}">
+                    <i data-lucide="user-plus" class="w-5 h-5 {{ request()->routeIs('admin.solicitudes.*') ? '' : 'group-hover:text-calabaza-500 transition-colors' }}"></i>
+                    <span>Solicitudes Chef</span>
                 </a>
 
                 <!-- Configuración -->

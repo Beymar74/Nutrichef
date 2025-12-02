@@ -47,6 +47,9 @@ class _LoginState extends State<Login> {
       final userId = usuario['id']; 
       final idRol = usuario['id_rol']; 
 
+      print('🔍 DEBUG - ID del rol recibido: $idRol');
+      print('🔍 DEBUG - Tipo de dato: ${idRol.runtimeType}');
+
       // 🟢 GUARDAR EN PREFERENCIAS
       final prefs = await SharedPreferences.getInstance();
       if (token.isNotEmpty) {
@@ -58,6 +61,7 @@ class _LoginState extends State<Login> {
         await prefs.setInt('auth_user_id', userId is int ? userId : int.parse(userId.toString()));
       }
 
+      // Convertir a int si viene como String
       final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
       await prefs.setInt('auth_role', rolNumerico);
 
@@ -70,11 +74,13 @@ class _LoginState extends State<Login> {
 
       // 🔹 REDIRECCIÓN SEGÚN ROL
       if (rolNumerico == 2) {
+        // ROL CHEF (id_rol = 2) → Redirigir a HomeChef
         print('✅ Redirigiendo a HomeChef');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
         );
       } else {
+        // ROL USUARIO NORMAL (id_rol = 1) → Redirigir a Home
         print('✅ Redirigiendo a Home (usuario normal)');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
@@ -227,7 +233,10 @@ class _LoginState extends State<Login> {
                         : const Text(
                             'Iniciar Sesión',
                             style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white,),
+                              fontSize: 17, 
+                              fontWeight: FontWeight.bold, 
+                              color: Colors.white,
+                            ),
                           ),
                   ),
                 ),

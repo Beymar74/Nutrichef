@@ -45,6 +45,12 @@ class _RegistroState extends State<Registro> {
       return;
     }
 
+    // 🔹 Validar formato de email
+    if (!_esEmailValido(email)) {
+      _mensajeError('Por favor ingresa un correo electrónico válido');
+      return;
+    }
+
     if (password != confirmarPassword) {
       _mensajeError('Las contraseñas no coinciden');
       return;
@@ -87,17 +93,202 @@ class _RegistroState extends State<Registro> {
 
     setState(() => _isLoading = false);
 
+    // 🔹 MANEJO MEJORADO DE RESPUESTAS
     if (response['success'] == true ||
         response['message'] == 'Usuario registrado correctamente') {
       _mostrarDialogoExito(nameCorto);
     } else {
       String errorMessage = response['message'] ?? 'Error al registrar';
+      
+      // 🔹 Manejo específico de errores de validación
       if (response['errors'] != null) {
         final errors = response['errors'] as Map<String, dynamic>;
-        errorMessage = errors.values.first[0];
+        
+        // Verificar si es error de email duplicado
+        if (errors.containsKey('email')) {
+          final emailErrors = errors['email'] as List;
+          errorMessage = emailErrors.first.toString();
+          
+          // 🔹 Mensaje más amigable para email duplicado
+          if (errorMessage.toLowerCase().contains('already') || 
+              errorMessage.toLowerCase().contains('ya') ||
+              errorMessage.toLowerCase().contains('existe') ||
+              errorMessage.toLowerCase().contains('taken')) {
+            errorMessage = '⚠️ Este correo electrónico ya está registrado.\nIntenta iniciar sesión o usa otro correo.';
+            _mostrarDialogoCorreoDuplicado(email);
+            return;
+          }
+        } else {
+          // Otros errores de validación
+          errorMessage = errors.values.first[0].toString();
+        }
       }
+      
       _mensajeError(errorMessage);
     }
+  }
+
+  // 🆕 Validar formato de email
+  bool _esEmailValido(String email) {
+    final RegExp emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
+
+  // 🆕 Diálogo específico para correo duplicado
+  void _mostrarDialogoCorreoDuplicado(String email) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF8C21).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: Color(0xFFFF8C21),
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Correo Ya Registrado',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'El correo electrónico que ingresaste ya está siendo usado por otra cuenta.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.email_outlined,
+                    size: 18,
+                    color: Color(0xFFFF8C21),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      email,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '¿Qué puedes hacer?',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _opcionDialogo(
+              Icons.login,
+              'Iniciar sesión con esta cuenta',
+            ),
+            _opcionDialogo(
+              Icons.email,
+              'Usar otro correo electrónico',
+            ),
+            _opcionDialogo(
+              Icons.lock_reset,
+              'Recuperar tu contraseña',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Limpiar solo el campo de email
+              _emailController.clear();
+            },
+            child: const Text(
+              'Usar otro correo',
+              style: TextStyle(
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const Login()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF8C21),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Iniciar Sesión',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _opcionDialogo(IconData icon, String texto) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: const Color(0xFFFF8C21),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              texto,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   String _generarNombreCorto(String nombres, String apellidoPaterno) {
@@ -111,9 +302,29 @@ class _RegistroState extends State<Registro> {
 
   void _mensajeError(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(texto), backgroundColor: Colors.red),
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(texto),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        duration: const Duration(seconds: 4),
+      ),
     );
   }
+
   void _mostrarDialogoExito(String nombreUsuario) {
     showDialog(
       context: context,
@@ -262,7 +473,23 @@ class _RegistroState extends State<Registro> {
           padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 20),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              // Botón de retroceso
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Color(0xFFFF8C21),
+                    size: 28,
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const Login()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
               const Text(
                 'Regístrate a NutriChef',
                 style: TextStyle(
@@ -330,7 +557,7 @@ class _RegistroState extends State<Registro> {
                 onPressed: _isLoading ? null : _registrarUsuario,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFF8C21),
-                  foregroundColor: Colors.white, // ✅ ahora el texto es visible
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding:

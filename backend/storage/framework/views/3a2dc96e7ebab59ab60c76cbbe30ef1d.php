@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Dashboard'); ?>
 <?php $__env->startSection('titulo_pagina', 'Resumen General'); ?>
 

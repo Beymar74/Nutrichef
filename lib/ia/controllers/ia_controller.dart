@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 
 class IaController {
   // ⚠️ TU IP CONFIGURADA PARA CELULAR FÍSICO
-  static const String _baseUrl = 'http://192.168.0.12:18000/api';
+  static const String _baseUrl = 'http://10.0.2.2:18000/api';
+
 
   /// 1. Subir foto y obtener ingredientes detectados (con traducción)
   Future<List<dynamic>> identificarIngredientes(File imagen) async {

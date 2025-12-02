@@ -22,15 +22,18 @@ class RolesSeeder extends Seeder
         $roles = [
             ['descripcion' => 'admin', 'estado' => true],
             ['descripcion' => 'user',  'estado' => true],
+            ['descripcion' => 'chef',  'estado' => true],
         ];
 
         foreach ($roles as $role) {
-            DB::table('roles')->insert([
-                'descripcion' => $role['descripcion'],
-                'estado' => $role['estado'],
-                'created_at' => $now,
-                'updated_at' => $now
-            ]);
+            DB::table('roles')->updateOrInsert(
+                ['descripcion' => $role['descripcion']], // Buscar por descripción
+                [
+                    'estado' => $role['estado'],
+                    'created_at' => $now,
+                    'updated_at' => $now
+                ]
+            );
         }
 
         // Reactivar restricciones
