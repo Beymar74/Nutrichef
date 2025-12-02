@@ -14,40 +14,40 @@ class RecetaController extends Controller
      * Obtener lista de recetas
      */
     public function index(Request $request)
-    {
-        try {
-            $query = Receta::query();
+{
+    try {
+        $query = Receta::query();
 
-            // Filtrar por creador o mostrar solo publicadas
-            if ($request->has('id_usuario_creador')) {
-                $query->where('id_usuario_creador', $request->input('id_usuario_creador'));
-            } else {
-                $query->where('id_estado', 2); // 2 = Publicada (Ajusta según tu BD)
-            }
-
-            $recetas = $query->with([
-                'estado', 
-                'tipoAlimento', 
-                'multimedia' => function($q) {
-                    $q->orderBy('orden', 'asc');
-                }
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-            // Procesar imágenes
-            $recetas->map(function($receta) {
-                $receta->imagen_url = $this->getImagenUrl($receta->id);
-                return $receta;
-            });
-
-            return response()->json($recetas, 200);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al cargar recetas: ' . $e->getMessage()], 500);
+        // Filtrar por creador o mostrar solo publicadas y borradores
+        if ($request->has('id_usuario_creador')) {
+            $query->where('id_usuario_creador', $request->input('id_usuario_creador'));
+        } else {
+            // ✅ Mostrar BORRADORES (1) y PUBLICADAS (2)
+            $query->whereIn('id_estado', [1, 2]);
         }
-    }
 
+        $recetas = $query->with([
+            'estado', 
+            'tipoAlimento', 
+            'multimedia' => function($q) {
+                $q->orderBy('orden', 'asc');
+            }
+        ])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        // Procesar imágenes
+        $recetas->map(function($receta) {
+            $receta->imagen_url = $this->getImagenUrl($receta->id);
+            return $receta;
+        });
+
+        return response()->json($recetas, 200);
+
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Error al cargar recetas: ' . $e->getMessage()], 500);
+    }
+}
     /**
      * Crear receta (POST)
      */

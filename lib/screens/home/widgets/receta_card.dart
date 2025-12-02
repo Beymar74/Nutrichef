@@ -44,6 +44,10 @@ class RecetaCard extends StatelessWidget {
   }
 
   Widget _buildImagen() {
+    // ✅ PRINTS PARA DEBUG
+    print('🖼️ RecetaCard mostrando: ${receta.titulo}');
+    print('   URL de imagen: ${receta.imagen}');
+    
     return Stack(
       children: [
         ClipRRect(
@@ -54,6 +58,7 @@ class RecetaCard extends StatelessWidget {
             width: double.infinity,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
+              print('❌ Error cargando imagen para ${receta.titulo}: $error');
               return Container(
                 height: 120,
                 color: Colors.grey[300],

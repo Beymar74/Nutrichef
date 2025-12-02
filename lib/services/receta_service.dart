@@ -6,6 +6,7 @@ class RecetaService {
   // Para dispositivo físico usa la IP de tu PC:
   static const String baseUrl = 'http://192.168.0.16:18000/api';
   //static const String baseUrl = "laip";
+  
   Future<List<Receta>> obtenerRecetas() async {
     try {
       print('🔍 Intentando obtener recetas desde: $baseUrl/recetas');
@@ -24,20 +25,23 @@ class RecetaService {
       );
 
       print('📡 Status Code: ${response.statusCode}');
-      print('📦 Response Body: ${response.body}');
+      
+      // ✅ PRINT PARA VER EL JSON COMPLETO (solo las primeras 500 caracteres)
+      print('📦 Response Body (primeros 500 chars):');
+      print(response.body.substring(0, response.body.length > 500 ? 500 : response.body.length));
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final List<dynamic> jsonList = json.decode(response.body);
         
-        // Ajusta según la estructura de tu API
-        if (jsonResponse.containsKey('data')) {
-          final List<dynamic> data = jsonResponse['data'];
-          return data.map((json) => Receta.fromJson(json)).toList();
-        } else {
-          // Si tu API devuelve directamente un array
-          final List<dynamic> data = json.decode(response.body);
-          return data.map((json) => Receta.fromJson(json)).toList();
+        // ✅ PRINT PARA VER LA PRIMERA RECETA COMPLETA
+        if (jsonList.isNotEmpty) {
+          print('🖼️ Primera receta del JSON:');
+          print(jsonList[0]);
+          print('');
+          print('🖼️ imagen_url de la primera receta: ${jsonList[0]['imagen_url']}');
         }
+        
+        return jsonList.map((json) => Receta.fromJson(json)).toList();
       } else {
         throw Exception('Error ${response.statusCode}: ${response.body}');
       }
@@ -64,12 +68,15 @@ class RecetaService {
       print('📦 Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        final dynamic jsonResponse = json.decode(response.body);
         
-        if (jsonResponse.containsKey('data')) {
-          return Receta.fromJson(jsonResponse['data']);
-        } else {
-          return Receta.fromJson(jsonResponse);
+        // Si es un Map, podría tener 'data' o ser directo
+        if (jsonResponse is Map<String, dynamic>) {
+          if (jsonResponse.containsKey('data')) {
+            return Receta.fromJson(jsonResponse['data']);
+          } else {
+            return Receta.fromJson(jsonResponse);
+          }
         }
       }
       return null;
@@ -92,16 +99,12 @@ class RecetaService {
         },
       ).timeout(const Duration(seconds: 10));
 
+      print('📡 Status Code: ${response.statusCode}');
+      print('📦 Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(response.body);
-        
-        if (jsonResponse.containsKey('data')) {
-          final List<dynamic> data = jsonResponse['data'];
-          return data.map((json) => Receta.fromJson(json)).toList();
-        } else {
-          final List<dynamic> data = json.decode(response.body);
-          return data.map((json) => Receta.fromJson(json)).toList();
-        }
+        final List<dynamic> jsonList = json.decode(response.body);
+        return jsonList.map((json) => Receta.fromJson(json)).toList();
       }
       return [];
     } catch (e) {

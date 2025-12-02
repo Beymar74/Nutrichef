@@ -11,7 +11,6 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\ChefController;
 use App\Http\Controllers\FollowController;
-// ✅ Importamos una sola vez el controlador de Recetas
 use App\Http\Controllers\API\RecetaController; 
 
 /*
@@ -42,10 +41,18 @@ Route::post('/recuperar-password/cambiar',          [PasswordResetController::cl
 
 
 // ==========================
-// 🛡️ RUTAS PROTEGIDAS (Requieren Token)
+// 🔓 PERFIL (ACCESO HÍBRIDO)
+// ==========================
+// ✅ CORRECCIÓN: Esta ruta ahora está FUERA del middleware sanctum.
+// Esto permite que el Chef guarde su perfil enviando su ID manualmente.
+Route::put('/usuario/perfil',      [AuthController::class, 'actualizarPerfil']);
+
+
+// ==========================
+// 🛡️ RUTAS PROTEGIDAS (Solo Token)
 // ==========================
 Route::middleware('auth:sanctum')->group(function () {
-    Route::put('/usuario/perfil',          [AuthController::class, 'actualizarPerfil']);
+    // La ruta de perfil ya NO está aquí adentro
     Route::put('/perfil/dieta',            [PerfilController::class, 'actualizarDieta']);
     Route::put('/perfil/nivel-cocina',     [PerfilController::class, 'actualizarNivelCocina']);
     Route::put('/perfil/alergias',         [PerfilController::class, 'actualizarAlergias']);
@@ -60,11 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // ==========================
 // 👨‍🍳 GESTIÓN DE RECETAS (CRUD Completo)
 // ==========================
-Route::get('/recetas',       [RecetaController::class, 'index']);   // Ver lista
-Route::post('/recetas',      [RecetaController::class, 'store']);   // Crear (Esta faltaba y causaba el 405)
-Route::get('/recetas/{id}',  [RecetaController::class, 'show']);    // Ver detalle
-Route::put('/recetas/{id}',  [RecetaController::class, 'update']);  // Actualizar
-Route::delete('/recetas/{id}', [RecetaController::class, 'destroy']); // Eliminar
+Route::get('/recetas',       [RecetaController::class, 'index']);
+Route::post('/recetas',      [RecetaController::class, 'store']);
+Route::get('/recetas/{id}',  [RecetaController::class, 'show']);
+Route::put('/recetas/{id}',  [RecetaController::class, 'update']);
+Route::delete('/recetas/{id}', [RecetaController::class, 'destroy']);
 
 
 // ==========================
@@ -80,7 +87,7 @@ Route::post('/buscar-recetas',           [IAController::class, 'buscarPorIngredi
 Route::get('/ingredientes/listar', [IAController::class, 'listarIngredientes']);
 Route::get('/unidades/listar',     [IAController::class, 'listarUnidades']);
 
-// Estadísticas Mock (Para que no falle el Home del Chef en Flutter)
+// Estadísticas Mock (Para el dashboard)
 Route::get('/chefs/{id}/estadisticas', function ($id) {
     return response()->json([
         'total_visualizaciones' => 150,
@@ -90,9 +97,8 @@ Route::get('/chefs/{id}/estadisticas', function ($id) {
     ]);
 });
 
-// Catálogos Genéricos (Para dropdowns en Flutter)
+// Catálogos Genéricos
 Route::get('/catalogos/{dominio}', function ($dominio) {
-    // Aquí puedes conectar con un controlador real si tienes la tabla subdominios
     return response()->json([]);
 });
 

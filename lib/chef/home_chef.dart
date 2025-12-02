@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'models/chef_receta_model.dart'; // ✅ Importa el modelo correcto
+import 'models/chef_receta_model.dart';
 import 'services/chef_service.dart';
 import 'crear_receta.dart';
 import 'editar_receta.dart';
 import 'ver_receta_chef.dart';
-import 'estadisticas_chef_screen.dart';
+import 'estadisticas_chef_screen.dart'; // ✅ Importante
 import 'perfil_chef_screen.dart';
 import 'receta_card_widget.dart';
 
@@ -27,9 +27,11 @@ class _HomeChefState extends State<HomeChef> {
   bool _isLoading = true;
   String _filtroActual = 'Todas';
   
+  // Stats Calculadas
   int _totalVistas = 0;
   double _promedioCalif = 0.0;
   int _totalComentarios = 0;
+  int _totalFavoritos = 0; // ✅ Agregamos esta variable
 
   @override
   void initState() {
@@ -53,7 +55,7 @@ class _HomeChefState extends State<HomeChef> {
       if (!mounted) return;
       
       _misRecetas = recetas;
-      _calcularEstadisticas();
+      _calcularEstadisticas(); // ✅ Calcula todo al cargar
       
       setState(() => _isLoading = false);
     } catch (e) {
@@ -62,8 +64,11 @@ class _HomeChefState extends State<HomeChef> {
   }
 
   void _calcularEstadisticas() {
+    // Sumamos los valores de todas las recetas
     _totalVistas = _misRecetas.fold(0, (sum, r) => sum + (r.visualizaciones ?? 0));
     _totalComentarios = _misRecetas.fold(0, (sum, r) => sum + (r.totalComentarios ?? 0));
+    _totalFavoritos = _misRecetas.fold(0, (sum, r) => sum + (r.totalFavoritos ?? 0)); // ✅ Suma favoritos
+
     final conCalif = _misRecetas.where((r) => (r.calificacion ?? 0) > 0);
     _promedioCalif = conCalif.isNotEmpty 
         ? conCalif.fold(0.0, (sum, r) => sum + r.calificacion!) / conCalif.length 
@@ -90,6 +95,7 @@ class _HomeChefState extends State<HomeChef> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => VerRecetaChefScreen(receta: r)));
   }
 
+  // ✅ BOTÓN ESTADÍSTICAS FUNCIONAL
   void _irAEstadisticas() {
     Navigator.push(context, MaterialPageRoute(builder: (_) => EstadisticasChefScreen(
       misRecetas: _misRecetas,
@@ -97,19 +103,28 @@ class _HomeChefState extends State<HomeChef> {
       totalVisualizaciones: _totalVistas,
       calificacionPromedio: _promedioCalif,
       totalComentarios: _totalComentarios,
-      totalFavoritos: 0,
+      totalFavoritos: _totalFavoritos, // Pasamos el dato real
     )));
   }
 
-  void _irAPerfil() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => PerfilChefScreen(
-      nombreChef: nombreChef,
-      chefId: chefId,
-      emailChef: widget.usuario['email']?.toString() ?? '',
-      totalRecetas: _misRecetas.length,
-      recetasPublicadas: _misRecetas.where((r) => r.estado.contains('PUBLIC')).length,
-      calificacionPromedio: _promedioCalif,
-    )));
+  void _irAPerfil() async {
+    final resultado = await Navigator.push(
+      context, 
+      MaterialPageRoute(builder: (_) => PerfilChefScreen(
+        nombreChef: nombreChef,
+        chefId: chefId,
+        emailChef: widget.usuario['email']?.toString() ?? '',
+        totalRecetas: _misRecetas.length,
+        recetasPublicadas: _misRecetas.where((r) => r.estado.contains('PUBLIC')).length,
+        calificacionPromedio: _promedioCalif,
+      ))
+    );
+
+    if (resultado != null && resultado is Map) {
+      setState(() {
+        if (resultado.containsKey('nombre')) nombreChef = resultado['nombre'];
+      });
+    }
   }
 
   @override
@@ -204,17 +219,21 @@ class _HomeChefState extends State<HomeChef> {
   }
 
   Widget _buildStatsRow() {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFFFF8C21), Color(0xFFFFB84D)]),
-        borderRadius: BorderRadius.circular(15),
+    return GestureDetector( // Hacer clic en el resumen también lleva a stats
+      onTap: _irAEstadisticas,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFFFF8C21), Color(0xFFFFB84D)]),
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          _statItem(Icons.visibility, '$_totalVistas', 'Vistas'),
+          _statItem(Icons.star, _promedioCalif.toStringAsFixed(1), 'Rating'),
+          _statItem(Icons.comment, '$_totalComentarios', 'Comentarios'),
+        ]),
       ),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        _statItem(Icons.visibility, '$_totalVistas', 'Vistas'),
-        _statItem(Icons.star, _promedioCalif.toStringAsFixed(1), 'Rating'),
-        _statItem(Icons.comment, '$_totalComentarios', 'Comentarios'),
-      ]),
     );
   }
 
