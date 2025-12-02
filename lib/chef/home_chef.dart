@@ -3,69 +3,12 @@ import '../services/receta_service.dart';
 import '../models/receta_model.dart';
 import 'crear_receta.dart';
 import 'editar_receta.dart';
-import 'ver_receta_chef.dart';
 import '../screens/catalogo_recetas.dart';
-
-// Incluir una implementación simple del screen de detalles aquí para evitar
-// el error "Target of URI doesn't exist". Si luego se crea el archivo
-// detalles_receta.dart, se puede revertir a la importación original.
-class DetallesRecetaScreen extends StatelessWidget {
-  final Map<String, dynamic> receta;
-
-  const DetallesRecetaScreen({Key? key, required this.receta}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final titulo = receta['titulo'] ?? 'Receta';
-    final resumen = receta['resumen'] ?? '';
-    final imagen = receta['imagen'] ??
-        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titulo),
-        backgroundColor: const Color(0xFFFF8C21),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                imagen,
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 200,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.restaurant, size: 64),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              titulo,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              resumen,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
-            ),
-            const SizedBox(height: 16),
-            // Puedes mostrar más detalles de la receta si están disponibles en el mapa
-          ],
-        ),
-      ),
-    );
-  }
-}
+import 'estadisticas_chef_screen.dart';
+import 'perfil_chef_screen.dart';
+import 'receta_card_widget.dart';
 
 class HomeChef extends StatefulWidget {
-  // 🔹 MODIFICADO: Ahora acepta el objeto usuario completo
   final Map<String, dynamic> usuario;
 
   const HomeChef({
@@ -81,7 +24,7 @@ class _HomeChefState extends State<HomeChef> {
   int _selectedIndex = 0;
   final RecetaService _recetaService = RecetaService();
   
-  // 🔹 Variables extraídas del usuario
+  // Variables extraídas del usuario
   late String nombreChef;
   late int chefId;
   late String emailChef;
@@ -107,40 +50,28 @@ class _HomeChefState extends State<HomeChef> {
   @override
   void initState() {
     super.initState();
-    
-    // 🔹 EXTRAER DATOS DEL USUARIO
     _extraerDatosUsuario();
     _cargarMisRecetas();
   }
 
   void _extraerDatosUsuario() {
-    // Extraer nombre del chef
     nombreChef = widget.usuario['name'] ?? 
                  widget.usuario['nombres'] ?? 
                  'Chef';
-    
-    // Extraer ID del chef
     chefId = widget.usuario['id'] ?? 0;
-    
-    // Extraer email
     emailChef = widget.usuario['email'] ?? '';
     
     print('🔍 Datos del Chef:');
     print('   Nombre: $nombreChef');
     print('   ID: $chefId');
     print('   Email: $emailChef');
-    print('   Usuario completo: ${widget.usuario}');
   }
 
   Future<void> _cargarMisRecetas() async {
     try {
       setState(() => _isLoading = true);
       
-      // Simular carga de recetas del chef
-      // En producción, esto vendría del API con filtro por chef_id
       final todasLasRecetas = await _recetaService.obtenerRecetas();
-      
-      // Filtrar por chef (simulado)
       _misRecetas = todasLasRecetas;
       
       // Clasificar por estado
@@ -153,7 +84,6 @@ class _HomeChefState extends State<HomeChef> {
       _recetasBorrador = _misRecetas.where((r) => 
         r.estado == 'BORRADOR').toList();
       
-      // Calcular estadísticas
       _calcularEstadisticas();
       
       setState(() => _isLoading = false);
@@ -233,31 +163,37 @@ class _HomeChefState extends State<HomeChef> {
         break;
       case 2:
         // Estadísticas
-        _mostrarEstadisticasCompletas();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EstadisticasChefScreen(
+              misRecetas: _misRecetas,
+              recetasPublicadas: _recetasPublicadas,
+              totalVisualizaciones: _totalVisualizaciones,
+              calificacionPromedio: _calificacionPromedio,
+              totalComentarios: _totalComentarios,
+              totalFavoritos: _totalFavoritos,
+            ),
+          ),
+        );
         break;
       case 3:
-        // Perfil - Mostrar información del chef
-        _mostrarPerfilChef();
+        // Perfil
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PerfilChefScreen(
+              nombreChef: nombreChef,
+              chefId: chefId,
+              emailChef: emailChef,
+              totalRecetas: _misRecetas.length,
+              recetasPublicadas: _recetasPublicadas.length,
+              calificacionPromedio: _calificacionPromedio,
+            ),
+          ),
+        );
         break;
     }
-  }
-
-  void _mostrarEstadisticasCompletas() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildEstadisticasModal(),
-    );
-  }
-
-  void _mostrarPerfilChef() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildPerfilModal(),
-    );
   }
 
   @override
@@ -282,56 +218,27 @@ class _HomeChefState extends State<HomeChef> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 20),
-
-                        // HEADER
                         _buildHeader(),
-                        
                         const SizedBox(height: 25),
-
-                        // ESTADÍSTICAS RÁPIDAS
                         _buildEstadisticasRapidas(),
-
                         const SizedBox(height: 25),
-
-                        // ACCIONES RÁPIDAS
                         _buildAccionesRapidas(),
-
                         const SizedBox(height: 25),
-
-                        // FILTROS DE ESTADO
                         _buildFiltrosEstado(),
-
                         const SizedBox(height: 20),
-
-                        // TÍTULO SECCIÓN
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Mis Recetas (${_obtenerRecetasFiltradas().length})',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFEC888D),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.sort),
-                              color: const Color(0xFFFF8C21),
-                              onPressed: () => _mostrarOpcionesOrdenamiento(),
-                            ),
-                          ],
-                        ),
-
+                        _buildTituloSeccion(),
                         const SizedBox(height: 15),
-
-                        // LISTA DE RECETAS
+                        
                         if (_obtenerRecetasFiltradas().isEmpty)
                           _buildSinRecetas()
                         else
                           ..._obtenerRecetasFiltradas().map((receta) => Padding(
                             padding: const EdgeInsets.only(bottom: 15),
-                            child: _buildRecetaCard(receta),
+                            child: RecetaCardWidget(
+                              receta: receta,
+                              onEditar: () => _navegarAEditarReceta(receta),
+                              onEliminar: () => _mostrarDialogoEliminar(receta),
+                            ),
                           )).toList(),
 
                         const SizedBox(height: 100),
@@ -341,15 +248,11 @@ class _HomeChefState extends State<HomeChef> {
                 ),
               ),
       ),
-
-      // FLOATING ACTION BUTTON
       floatingActionButton: FloatingActionButton(
         onPressed: _navegarACrearReceta,
         backgroundColor: const Color(0xFFFF8C21),
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
-
-      // BOTTOM NAVIGATION BAR
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
@@ -357,7 +260,6 @@ class _HomeChefState extends State<HomeChef> {
   Widget _buildHeader() {
     return Row(
       children: [
-        // Avatar del Chef
         Container(
           width: 60,
           height: 60,
@@ -382,7 +284,6 @@ class _HomeChefState extends State<HomeChef> {
         ),
         const SizedBox(width: 15),
         
-        // Saludo y rol
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,7 +333,6 @@ class _HomeChefState extends State<HomeChef> {
           ),
         ),
         
-        // Notificaciones
         Stack(
           children: [
             IconButton(
@@ -507,7 +407,6 @@ class _HomeChefState extends State<HomeChef> {
           ),
           const SizedBox(height: 20),
           
-          // Barra de progreso de recetas publicadas
           Column(
             children: [
               Row(
@@ -590,7 +489,7 @@ class _HomeChefState extends State<HomeChef> {
             Icons.analytics,
             'Ver\nEstadísticas',
             const Color(0xFF2196F3),
-            _mostrarEstadisticasCompletas,
+            () => _onNavBarTap(2),
           ),
         ),
         const SizedBox(width: 12),
@@ -720,242 +619,22 @@ class _HomeChefState extends State<HomeChef> {
     );
   }
 
-  Widget _buildRecetaCard(Receta receta) {
-    Color estadoColor;
-    IconData estadoIcon;
-    String estadoTexto = receta.estado ?? 'BORRADOR';
-    
-    switch (estadoTexto) {
-      case 'PUBLICADA':
-        estadoColor = const Color(0xFF4CAF50);
-        estadoIcon = Icons.check_circle;
-        break;
-      case 'PENDIENTE_REVISION':
-        estadoColor = const Color(0xFFFFA726);
-        estadoIcon = Icons.schedule;
-        break;
-      case 'RECHAZADA':
-        estadoColor = const Color(0xFFF44336);
-        estadoIcon = Icons.cancel;
-        break;
-      default:
-        estadoColor = const Color(0xFF9E9E9E);
-        estadoIcon = Icons.edit;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Contenido principal
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Imagen
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    receta.imagen ?? 
-                    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.restaurant, size: 30),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                
-                // Información
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              receta.titulo,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8, 
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: estadoColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  estadoIcon,
-                                  size: 14,
-                                  color: estadoColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  estadoTexto,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: estadoColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        receta.resumen,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildInfoChip(
-                            Icons.visibility,
-                            '${receta.visualizaciones ?? 0}',
-                          ),
-                          const SizedBox(width: 8),
-                          _buildInfoChip(
-                            Icons.star,
-                            '${receta.calificacion ?? 0}',
-                          ),
-                          const SizedBox(width: 8),
-                          _buildInfoChip(
-                            Icons.comment,
-                            '${receta.totalComentarios ?? 0}',
-                          ),
-                          const SizedBox(width: 8),
-                          _buildInfoChip(
-                            Icons.favorite,
-                            '${receta.totalFavoritos ?? 0}',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Acciones
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VerRecetaChefScreen(
-                          receta: receta,
-                        ),
-                      ),
-                    ),
-                    icon: const Icon(Icons.visibility, size: 18),
-                    label: const Text('Ver'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF2196F3),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 20,
-                  color: Colors.grey[300],
-                ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _navegarAEditarReceta(receta),
-                    icon: const Icon(Icons.edit, size: 18),
-                    label: const Text('Editar'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFFFA726),
-                    ),
-                  ),
-                ),
-                Container(
-                  width: 1,
-                  height: 20,
-                  color: Colors.grey[300],
-                ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _mostrarDialogoEliminar(receta),
-                    icon: const Icon(Icons.delete, size: 18),
-                    label: const Text('Eliminar'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFF44336),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String text) {
+  Widget _buildTituloSeccion() {
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(
-          icon,
-          size: 12,
-          color: Colors.grey[600],
-        ),
-        const SizedBox(width: 3),
         Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[600],
+          'Mis Recetas (${_obtenerRecetasFiltradas().length})',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFEC888D),
           ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.sort),
+          color: const Color(0xFFFF8C21),
+          onPressed: () => _mostrarOpcionesOrdenamiento(),
         ),
       ],
     );
@@ -1050,385 +729,6 @@ class _HomeChefState extends State<HomeChef> {
     );
   }
 
-  Widget _buildEstadisticasModal() {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      child: Column(
-        children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
-          // Contenido
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Estadísticas Detalladas',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFEC888D),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Aquí irían gráficos y estadísticas más detalladas
-                  _buildEstadisticaDetalle(
-                    'Receta más vista',
-                    _recetasPublicadas.isNotEmpty ? 
-                      _recetasPublicadas.first.titulo : 'N/A',
-                    '${_recetasPublicadas.isNotEmpty ? 
-                      _recetasPublicadas.first.visualizaciones : 0} vistas',
-                    Icons.trending_up,
-                    const Color(0xFF4CAF50),
-                  ),
-                  const SizedBox(height: 15),
-                  _buildEstadisticaDetalle(
-                    'Mejor calificada',
-                    _recetasPublicadas.isNotEmpty ? 
-                      _recetasPublicadas.first.titulo : 'N/A',
-                    '⭐ ${_calificacionPromedio.toStringAsFixed(1)}',
-                    Icons.star,
-                    const Color(0xFFFFA726),
-                  ),
-                  const SizedBox(height: 15),
-                  _buildEstadisticaDetalle(
-                    'Más comentada',
-                    _recetasPublicadas.isNotEmpty ? 
-                      _recetasPublicadas.first.titulo : 'N/A',
-                    '${_recetasPublicadas.isNotEmpty ? 
-                      _recetasPublicadas.first.totalComentarios : 0} comentarios',
-                    Icons.comment,
-                    const Color(0xFF2196F3),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 🔹 NUEVO: Modal de perfil del chef
-  Widget _buildPerfilModal() {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      child: Column(
-        children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
-          // Contenido
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  // Avatar grande
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF8C21), Color(0xFFFFB84D)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF8C21).withOpacity(0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.restaurant_menu,
-                      color: Colors.white,
-                      size: 50,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Nombre
-                  Text(
-                    nombreChef,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFEC888D),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Email
-                  Text(
-                    emailChef,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Badge de chef
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFD54F),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      '👨‍🍳 Chef Profesional',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  
-                  // Información de usuario
-                  _buildInfoTile(
-                    Icons.badge,
-                    'ID de Chef',
-                    chefId.toString(),
-                  ),
-                  _buildInfoTile(
-                    Icons.restaurant,
-                    'Recetas Totales',
-                    _misRecetas.length.toString(),
-                  ),
-                  _buildInfoTile(
-                    Icons.check_circle,
-                    'Recetas Publicadas',
-                    _recetasPublicadas.length.toString(),
-                  ),
-                  _buildInfoTile(
-                    Icons.star,
-                    'Calificación Promedio',
-                    _calificacionPromedio.toStringAsFixed(1),
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // Botón cerrar sesión
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _cerrarSesion();
-                      },
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Cerrar Sesión'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF44336),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoTile(IconData icon, String label, String value) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey[200]!,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFF8C21).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: const Color(0xFFFF8C21),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFEC888D),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _cerrarSesion() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        title: const Row(
-          children: [
-            Icon(
-              Icons.logout,
-              color: Color(0xFFF44336),
-              size: 28,
-            ),
-            SizedBox(width: 10),
-            Text('Cerrar Sesión'),
-          ],
-        ),
-        content: const Text(
-          '¿Estás seguro de que deseas cerrar sesión?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Aquí iría la lógica de cerrar sesión
-              // Por ahora solo navegamos de vuelta al login
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF44336),
-            ),
-            child: const Text(
-              'Cerrar Sesión',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEstadisticaDetalle(
-    String titulo,
-    String subtitulo,
-    String valor,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitulo,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            valor,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _mostrarOpcionesOrdenamiento() {
     showModalBottomSheet(
       context: context,
@@ -1463,34 +763,22 @@ class _HomeChefState extends State<HomeChef> {
             ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text('Más recientes'),
-              onTap: () {
-                // Ordenar por fecha
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.visibility),
               title: const Text('Más vistas'),
-              onTap: () {
-                // Ordenar por vistas
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.star),
               title: const Text('Mejor calificadas'),
-              onTap: () {
-                // Ordenar por calificación
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.comment),
               title: const Text('Más comentadas'),
-              onTap: () {
-                // Ordenar por comentarios
-                Navigator.pop(context);
-              },
+              onTap: () => Navigator.pop(context),
             ),
             const SizedBox(height: 20),
           ],
@@ -1528,7 +816,6 @@ class _HomeChefState extends State<HomeChef> {
           ),
           ElevatedButton(
             onPressed: () {
-              // Aquí iría la lógica de eliminación
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -1550,14 +837,4 @@ class _HomeChefState extends State<HomeChef> {
       ),
     );
   }
-}
-
-// Extensión para el modelo Receta
-extension RecetaExtensions on Receta {
-  // Estados posibles
-  String get estado => 'PUBLICADA'; // Simular estado, debería venir del backend
-  int? get visualizaciones => 324; // Simular, debería venir del backend
-  double? get calificacion => 4.5; // Simular, debería venir del backend
-  int? get totalComentarios => 12; // Simular, debería venir del backend
-  int? get totalFavoritos => 45; // Simular, debería venir del backend
 }

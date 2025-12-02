@@ -39,7 +39,6 @@ class _CrearRecetaScreenState extends State<CrearRecetaScreen> {
   
   // Estado
   bool _isLoading = false;
-  bool _usarOCR = false;
   
   // Información nutricional
   Map<String, dynamic>? _infoNutricional;
@@ -105,36 +104,6 @@ class _CrearRecetaScreenState extends State<CrearRecetaScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _usarOCRParaIngredientes() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 80,
-    );
-    
-    if (image != null) {
-      setState(() => _usarOCR = true);
-      
-      // Simular OCR - En producción esto llamaría al servicio real
-      await Future.delayed(const Duration(seconds: 2));
-      
-      setState(() {
-        _ingredientes = [
-          IngredienteForm()..nombre.text = 'Tomate'..cantidad.text = '2'..unidad.text = 'unidades',
-          IngredienteForm()..nombre.text = 'Cebolla'..cantidad.text = '1'..unidad.text = 'unidad',
-          IngredienteForm()..nombre.text = 'Aceite de oliva'..cantidad.text = '2'..unidad.text = 'cucharadas',
-        ];
-        _usarOCR = false;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Ingredientes detectados con OCR'),
-          backgroundColor: Color(0xFF4CAF50),
-        ),
-      );
-    }
   }
 
   void _calcularInformacionNutricional() {
@@ -228,7 +197,7 @@ class _CrearRecetaScreenState extends State<CrearRecetaScreen> {
           ),
         ],
       ),
-      body: _isLoading && !_usarOCR
+      body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(
                 color: Color(0xFFFF8C21),
@@ -591,36 +560,14 @@ class _CrearRecetaScreenState extends State<CrearRecetaScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildSeccionTitulo('Ingredientes'),
-            Row(
-              children: [
-                if (_usarOCR)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFFFF8C21),
-                    ),
-                  )
-                else
-                  TextButton.icon(
-                    onPressed: _usarOCRParaIngredientes,
-                    icon: const Icon(Icons.camera_alt, size: 18),
-                    label: const Text('Usar OCR'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF2196F3),
-                    ),
-                  ),
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _ingredientes.add(IngredienteForm());
-                    });
-                  },
-                  icon: const Icon(Icons.add_circle),
-                  color: const Color(0xFF4CAF50),
-                ),
-              ],
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  _ingredientes.add(IngredienteForm());
+                });
+              },
+              icon: const Icon(Icons.add_circle),
+              color: const Color(0xFF4CAF50),
             ),
           ],
         ),
