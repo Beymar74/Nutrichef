@@ -12,6 +12,16 @@ class Receta extends Model
     protected $table = 'recetas';
     protected $guarded = [];
 
+    // Campos que se agregarán automáticamente al JSON
+    protected $appends = [
+        'calificacion_promedio', 
+        'total_comentarios', 
+        'total_favoritos', 
+        'visualizaciones',
+        'estado_descripcion', // Para facilitar acceso en Flutter
+        'tipo_alimento_descripcion'
+    ];
+
     // ====================
     // 🔗 RELACIONES
     // ====================
@@ -50,27 +60,32 @@ class Receta extends Model
     {
         return $this->hasMany(MultimediaReceta::class, 'id_receta');
     }
+    
+    // Relación con Favoritos (Asumiendo modelo UsuarioFavorito)
+    public function favoritos()
+    {
+        return $this->hasMany(UsuarioFavorito::class, 'id_receta');
+    }
 
     // ====================
-    // 🆕 ACCESORIOS ÚTILES (Virtuales)
+    // 🆕 ACCESORIOS (Virtuales para Flutter)
     // ====================
 
-    /**
-     * Calcula el rating promedio basado en las publicaciones de esta receta.
-     * Uso: $receta->rating_promedio
-     */
+    // Alias para compatibilidad con Flutter (calificacion_promedio)
+    public function getCalificacionPromedioAttribute()
+    {
+        return $this->rating_promedio; // Reusa tu lógica existente
+    }
+
+    // Tu lógica original de rating
     public function getRatingPromedioAttribute()
     {
-        // 1. Obtenemos las publicaciones de esta receta
-        // 2. De esas publicaciones, obtenemos sus calificaciones
-        // Nota: Esto asume que tienes un modelo Calificacion
-        
         $promedio = 0;
         $total = 0;
 
         foreach ($this->publicaciones as $pub) {
-            // Asumiendo que Publicacion tiene hasMany(Calificacion::class)
-            // Si no quieres cargar todo en memoria, puedes optimizar esto con query raw en el controller
+            // Asumiendo relación 'calificaciones' en Publicacion
+            // Usamos rescue para evitar errores si la relación no existe aún
             $avg = $pub->calificaciones()->avg('calificacion'); 
             if ($avg) {
                 $promedio += $avg;
@@ -79,5 +94,37 @@ class Receta extends Model
         }
 
         return $total > 0 ? round($promedio / $total, 1) : 0.0;
+    }
+
+    public function getTotalComentariosAttribute()
+    {
+        // Suma de comentarios de todas las publicaciones de esta receta
+        $total = 0;
+        foreach ($this->publicaciones as $pub) {
+            $total += $pub->comentarios()->count();
+        }
+        return $total;
+    }
+
+    public function getTotalFavoritosAttribute()
+    {
+        return $this->favoritos()->count();
+    }
+
+    public function getVisualizacionesAttribute()
+    {
+        // Retornamos 0 por defecto si no hay campo en BD
+        return $this->attributes['visualizaciones'] ?? 0;
+    }
+
+    // Helpers para obtener nombres directos de subdominios
+    public function getEstadoDescripcionAttribute()
+    {
+        return $this->estado ? $this->estado->descripcion : 'BORRADOR';
+    }
+
+    public function getTipoAlimentoDescripcionAttribute()
+    {
+        return $this->tipoAlimento ? $this->tipoAlimento->descripcion : 'OTRO';
     }
 }
