@@ -14,7 +14,7 @@ class DetallePublicacionScreen extends StatefulWidget {
 
   @override
   State<DetallePublicacionScreen> createState() =>
-      _DetallePublicacionScreenState();
+      _DetallePublicacionScreenState();s
 }
 
 class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
@@ -26,6 +26,14 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
   void initState() {
     super.initState();
     _cargarDatos();
+  }
+
+  @override
+  void dispose() {
+    _comentarioCtrl.dispose();
+    // ✅ Limpiar comentarios al salir
+    Provider.of<ComunidadService>(context, listen: false).limpiarComentarios();
+    super.dispose();
   }
 
   Future<void> _cargarDatos() async {
@@ -59,17 +67,72 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
 
     setState(() => enviando = true);
 
-    await Provider.of<ComunidadService>(context, listen: false)
+    final success = await Provider.of<ComunidadService>(context, listen: false)
         .agregarComentario(
+          widget.idPublicacion,
+          _comentarioCtrl.text.trim(),
+          widget.usuario['token'],
+        );
+
+    if (success) {
+      _comentarioCtrl.clear();
+      FocusScope.of(context).unfocus();
+
+      // ✅ Actualizar contador en la publicación
+      if (post != null) {
+        setState(() {
+          post!['comentarios_count'] = (post!['comentarios_count'] ?? 0) + 1;
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al agregar comentario")),
+      );
+    }
+
+    setState(() => enviando = false);
+  }
+
+  // ✅ ELIMINAR COMENTARIO
+  Future<void> _eliminarComentario(int idComentario) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("¿Eliminar comentario?"),
+        content: const Text("Esta acción no se puede deshacer"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Eliminar"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    final service = Provider.of<ComunidadService>(context, listen: false);
+    final success = await service.eliminarComentario(
+      idComentario,
       widget.idPublicacion,
-      _comentarioCtrl.text.trim(),
       widget.usuario['token'],
     );
 
-    _comentarioCtrl.clear();
-    FocusScope.of(context).unfocus();
+    if (success && mounted) {
+      // ✅ Actualizar contador local
+      setState(() {
+        post!['comentarios_count'] = (post!['comentarios_count'] ?? 0) - 1;
+      });
 
-    setState(() => enviando = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Comentario eliminado")));
+    }
   }
 
   @override
@@ -89,35 +152,38 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
       body: Column(
         children: [
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(10),
-              children: [
-                _cardPublicacion(post!),
-                const SizedBox(height: 10),
+            child: RefreshIndicator(
+              onRefresh: _cargarDatos,
+              child: ListView(
+                padding: const EdgeInsets.all(10),
+                children: [
+                  _cardPublicacion(post!),
+                  const SizedBox(height: 10),
 
-                Text(
-                  "Comentarios (${comentarios.length})",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                if (comentarios.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        "No hay comentarios.\n¡Sé el primero!",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
+                  Text(
+                    "Comentarios (${comentarios.length})",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
                     ),
-                  )
-                else
-                  ...comentarios.map((c) => _cardComentario(c)).toList()
-              ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  if (comentarios.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          "No hay comentarios.\n¡Sé el primero!",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    )
+                  else
+                    ...comentarios.map((c) => _cardComentario(c)).toList(),
+                ],
+              ),
             ),
           ),
 
@@ -127,9 +193,6 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
     );
   }
 
-  // ===============================
-  // APPBAR
-  // ===============================
   AppBar _appbar() {
     return AppBar(
       title: const Text("Publicación"),
@@ -137,9 +200,6 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
     );
   }
 
-  // ===============================
-  // CARD DE PUBLICACIÓN
-  // ===============================
   Widget _cardPublicacion(Map<String, dynamic> p) {
     return Card(
       elevation: 2,
@@ -161,29 +221,30 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
                       : null,
                 ),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p["usuario"]["name"],
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    Text(
-                      p["usuario"]["username"],
-                      style: TextStyle(color: Colors.grey[600]),
-                    )
-                  ],
-                )
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p["usuario"]["name"],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        p["usuario"]["username"],
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
 
             const SizedBox(height: 12),
 
-            Text(
-              p["descripcion"],
-              style: const TextStyle(fontSize: 15),
-            ),
+            Text(p["descripcion"], style: const TextStyle(fontSize: 15)),
 
             const SizedBox(height: 12),
 
@@ -222,12 +283,19 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 InkWell(
-                  onTap: () =>
-                      Provider.of<ComunidadService>(context, listen: false)
-                          .likeToggle(
-                    p['id'],
-                    widget.usuario['token'],
-                  ),
+                  onTap: () async {
+                    await Provider.of<ComunidadService>(
+                      context,
+                      listen: false,
+                    ).likeToggle(p['id'], widget.usuario['token']);
+                    // ✅ Actualizar estado local
+                    setState(() {
+                      final yaDioLike = p['ya_dio_like'] ?? false;
+                      p['ya_dio_like'] = !yaDioLike;
+                      p['likes_count'] =
+                          (p['likes_count'] ?? 0) + (yaDioLike ? -1 : 1);
+                    });
+                  },
                   child: Row(
                     children: [
                       Icon(
@@ -256,10 +324,9 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
     );
   }
 
-  // ===============================
-  // CARD DE COMENTARIO
-  // ===============================
   Widget _cardComentario(dynamic c) {
+    final esPropio = c["usuario"]["id"] == widget.usuario["id"];
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -267,8 +334,12 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: Colors.orange[200],
-            child: const Icon(Icons.person),
+            backgroundImage: c["usuario"]["avatar"] != null
+                ? NetworkImage(c["usuario"]["avatar"])
+                : null,
+            child: c["usuario"]["avatar"] == null
+                ? const Icon(Icons.person, size: 18)
+                : null,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -281,9 +352,26 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    c["usuario"]["name"],
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          c["usuario"]["name"],
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      // ✅ Botón eliminar (solo si es propio)
+                      if (esPropio)
+                        InkWell(
+                          onTap: () => _eliminarComentario(c["id"]),
+                          child: Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(c["contenido"]),
@@ -295,22 +383,23 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  // ===============================
-  // INPUT DE COMENTARIO
-  // ===============================
   Widget _inputComentario() {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -327,13 +416,17 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
             Expanded(
               child: TextField(
                 controller: _comentarioCtrl,
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: "Escribe un comentario...",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                 ),
               ),
             ),
@@ -342,13 +435,12 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
                 ? const SizedBox(
                     width: 25,
                     height: 25,
-                    child:
-                        CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : IconButton(
                     icon: const Icon(Icons.send, color: Colors.orange),
                     onPressed: enviarComentario,
-                  )
+                  ),
           ],
         ),
       ),

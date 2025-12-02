@@ -7,7 +7,8 @@ import '../services/comunidad_service.dart';
 class NuevaPublicacionScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
 
-  const NuevaPublicacionScreen({Key? key, required this.usuario}) : super(key: key);
+  const NuevaPublicacionScreen({Key? key, required this.usuario})
+      : super(key: key);
 
   @override
   _NuevaPublicacionScreenState createState() => _NuevaPublicacionScreenState();
@@ -19,20 +20,42 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
   bool _enviando = false;
 
   @override
+  void dispose() {
+    _descripcionCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Nueva Publicación"),
         backgroundColor: Colors.orange,
         actions: [
-          TextButton(
-            onPressed: _enviando ? null : _guardar,
-            child: Text(
-              "Guardar",
-              style: TextStyle(
-                color: _enviando ? Colors.grey[300] : Colors.white,
-                fontSize: 16,
-              ),
+          // ✅ Botón de publicar mejorado
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(
+              child: _enviando
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: _guardar,
+                      child: const Text(
+                        "Publicar",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
             ),
           ),
         ],
@@ -40,55 +63,119 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
       body: ListView(
         padding: const EdgeInsets.all(15),
         children: [
-          // Campo de descripción
-          TextField(
-            controller: _descripcionCtrl,
-            maxLines: 5,
-            decoration: InputDecoration(
-              hintText: "Escribe una descripción...",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+          // ✅ Avatar del usuario
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: Colors.orange,
+                child: Text(
+                  widget.usuario['name'][0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.usuario['name'],
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    widget.usuario['username'] ?? '@usuario',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
 
           const SizedBox(height: 20),
 
-          // Agregar imágenes
+          // Campo de descripción
+          TextField(
+            controller: _descripcionCtrl,
+            maxLines: 5,
+            maxLength: 500,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: "¿Qué quieres compartir?",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              counterText: "${_descripcionCtrl.text.length}/500",
+            ),
+            onChanged: (value) {
+              setState(() {}); // Actualizar contador
+            },
+          ),
+
+          const SizedBox(height: 20),
+
+          // Botones de acción
           Row(
             children: [
+              // ✅ Botón de imagen con icono mejorado
               ElevatedButton.icon(
-                onPressed: _seleccionarImagen,
-                icon: const Icon(Icons.image),
-                label: const Text("Agregar imagen"),
+                onPressed: _enviando ? null : _seleccionarImagen,
+                icon: const Icon(Icons.add_photo_alternate),
+                label: const Text("Agregar fotos"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
               const SizedBox(width: 10),
-              Text("(${_imagenes.length}/3)"),
+              Text(
+                "${_imagenes.length}/3 imágenes",
+                style: TextStyle(
+                  color: _imagenes.length >= 3 ? Colors.red : Colors.grey[600],
+                  fontWeight: _imagenes.length >= 3
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                ),
+              ),
             ],
           ),
 
           const SizedBox(height: 15),
 
-          // Previsualizar imágenes
+          // ✅ Previsualizar imágenes mejorado
           if (_imagenes.isNotEmpty)
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: List.generate(_imagenes.length, (i) {
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: _imagenes.length,
+              itemBuilder: (context, i) {
                 return Stack(
+                  fit: StackFit.expand,
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: Image.file(
                         _imagenes[i],
-                        width: 120,
-                        height: 120,
                         fit: BoxFit.cover,
                       ),
                     ),
+                    // Botón eliminar
                     Positioned(
                       right: 5,
                       top: 5,
@@ -103,45 +190,83 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(6),
                           child: const Icon(
                             Icons.close,
                             color: Colors.white,
-                            size: 18,
+                            size: 16,
                           ),
                         ),
                       ),
                     ),
                   ],
                 );
-              }),
+              },
             ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
 
-          // Indicador de carga
+          // ✅ Indicador de progreso con mensaje
           if (_enviando)
-            const Center(
-              child: CircularProgressIndicator(),
+            Center(
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 10),
+                  Text(
+                    _imagenes.isEmpty
+                        ? "Publicando..."
+                        : "Subiendo imágenes...",
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
     );
   }
 
-  // Función para seleccionar imagen
+  // ✅ Seleccionar imagen con opciones de cámara y galería
   Future<void> _seleccionarImagen() async {
     if (_imagenes.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Solo puedes subir hasta 3 imágenes")),
+        const SnackBar(
+          content: Text("Solo puedes subir hasta 3 imágenes"),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
 
+    // Mostrar opciones: cámara o galería
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Colors.orange),
+              title: const Text("Tomar foto"),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Colors.orange),
+              title: const Text("Elegir de galería"),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final picker = ImagePicker();
     final XFile? img = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
+      maxWidth: 1080,
     );
 
     if (img != null) {
@@ -151,33 +276,72 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
     }
   }
 
-  // Función para guardar la publicación
+  // ✅ Función para guardar con validación mejorada
   Future<void> _guardar() async {
+    // Validar descripción
     if (_descripcionCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Escribe una descripción")),
+        const SnackBar(
+          content: Text("Escribe una descripción para tu publicación"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Validar longitud mínima
+    if (_descripcionCtrl.text.trim().length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("La descripción debe tener al menos 10 caracteres"),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
 
     setState(() => _enviando = true);
 
-    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final comunidadService =
+        Provider.of<ComunidadService>(context, listen: false);
     final token = widget.usuario['token'];
 
-    final success = await comunidadService.crearPublicacionConImagenes(
-      _descripcionCtrl.text.trim(),
-      _imagenes,
-      token,
-    );
+    bool success;
+
+    if (_imagenes.isEmpty) {
+      // ✅ Sin imágenes
+      success = await comunidadService.crearPublicacion(
+        _descripcionCtrl.text.trim(),
+        token,
+      );
+    } else {
+      // ✅ Con imágenes
+      success = await comunidadService.crearPublicacionConImagenes(
+        _descripcionCtrl.text.trim(),
+        _imagenes,
+        token,
+      );
+    }
 
     setState(() => _enviando = false);
 
     if (success) {
-      Navigator.pop(context, true); // Volver al feed
-    } else {
+      // ✅ Mostrar mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al crear publicación")),
+        const SnackBar(
+          content: Text("¡Publicación creada exitosamente!"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context, true); // Volver al feed y recargar
+    } else {
+      // ❌ Mostrar error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error al crear publicación. Intenta nuevamente."),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
