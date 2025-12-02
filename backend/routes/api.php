@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\Api\RecetaController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Api\SolicitudChefController; 
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\IAController;
 
@@ -28,9 +29,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/perfil/dieta',            [PerfilController::class, 'actualizarDieta']);
     Route::put('/perfil/nivel-cocina',     [PerfilController::class, 'actualizarNivelCocina']);
     Route::put('/perfil/alergias',         [PerfilController::class, 'actualizarAlergias']);
+        // Enviar solicitud para ser Chef
+    Route::post('/solicitudes-chef', [SolicitudChefController::class, 'store']);
+    
+    // Ver mis solicitudes
+    Route::get('/mis-solicitudes-chef', [SolicitudChefController::class, 'misSolicitudes']);
 });
 Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
-    $request->user()->tokens()->delete();  // borra token
+    $request->user()->tokens()->delete();  // borra todos los tokens del usuario
     return response()->json(["success"=>true,"message"=>"Sesión cerrada"]);
 });
 // Recetas

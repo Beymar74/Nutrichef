@@ -49,7 +49,7 @@ class AuthController extends Controller
 
         // 👤 Crear registro en tabla USUARIOS
         $usuario = Usuario::create([
-            'id_rol'            => 4, // Rol por defecto: usuario
+            'id_rol'            => 2, // Rol por defecto: usuario
             'id_persona'        => $persona->id,
             'name'              => $nameGenerado,
             'email'             => $request->email,
@@ -66,37 +66,64 @@ class AuthController extends Controller
     /**
      * 🔑 LOGIN DE USUARIO + SANCTUM TOKEN
      */
-    public function login(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email'    => 'required|email',
-            'password' => 'required|string',
-        ]);
+ public function login(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'email'    => 'required|email',
+        'password' => 'required|string',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $usuario = Usuario::where('email', $request->email)->first();
-
-        if (!$usuario || !Hash::check($request->password, $usuario->password)) {
-            return response()->json(['message' => 'Credenciales incorrectas'], 401);
-        }
-
-        // 🔥 Generar token Sanctum
-        $token = $usuario->createToken('mobile')->plainTextToken;
-
-        return response()->json([
-            'message' => 'Inicio de sesión exitoso',
-            'usuario' => $usuario->load('persona', 'rol'),
-            'token'   => $token
-        ], 200);
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
     }
+
+    $usuario = Usuario::where('email', $request->email)->first();
+
+    if (!$usuario || !Hash::check($request->password, $usuario->password)) {
+        return response()->json(['message' => 'Credenciales incorrectas'], 401);
+    }
+
+    $token = $usuario->createToken('mobile')->plainTextToken;
+
+    $usuario->load('persona', 'rol');
+    
+    // 🔥 CONVERTIR IMAGEN SI EXISTE
+    $imgBase64 = null;
+    if ($usuario->persona && $usuario->persona->imagen) {
+        $imgBytes = $usuario->persona->imagen;
+        if (is_resource($imgBytes)) {
+            $imgBytes = stream_get_contents($imgBytes);
+        }
+        if (!empty($imgBytes)) {
+            $imgBase64 = base64_encode($imgBytes);
+        }
+    }
+
+    $usuarioData = $usuario->toArray();
+    
+    // 🔥 FORZAR ALTURA Y PESO COMO STRING
+    if (isset($usuarioData['persona'])) {
+        $usuarioData['persona']['altura'] = isset($usuarioData['persona']['altura'])
+    ? (string) $usuarioData['persona']['altura']
+    : null;
+
+$usuarioData['persona']['peso'] = isset($usuarioData['persona']['peso'])
+    ? (string) $usuarioData['persona']['peso']
+    : null;
+        $usuarioData['persona']['imagen'] = $imgBase64;
+    }
+
+    return response()->json([
+        'message' => 'Inicio de sesión exitoso',
+        'usuario' => $usuarioData,
+        'token'   => $token
+    ], 200);
+}
 
     /**
      * ✏️ ACTUALIZAR PERFIL (Protegido por Sanctum)
      */
-    public function actualizarPerfil(Request $request)
+public function actualizarPerfil(Request $request)
 {
     $user = $request->user();
 
@@ -105,44 +132,70 @@ class AuthController extends Controller
         'descripcion_perfil' => 'nullable|string',
         'altura'             => 'required|numeric',
         'peso'               => 'required|numeric',
-        'imagen'             => 'nullable|string'
+        'imagen'             => 'nullable|string',
+        'nombres'            => 'nullable|string',
+        'apellido_paterno'   => 'nullable|string',
+        'apellido_materno'   => 'nullable|string',
+        'telefono'           => 'nullable|string',
+        'fecha_nacimiento'   => 'nullable|date',
     ]);
 
     if ($validator->fails()) {
-        return response()->json([
-            "success" => false,
-            "errors"  => $validator->errors()
-        ],422);
+        return response()->json(["success" => false, "errors" => $validator->errors()],422);
     }
 
-    // ===========================
-    // 🟢 ACTUALIZAR USUARIO
-    // ===========================
+    // ======================= USUARIO =======================
     $user->update([
         "name"               => $request->name,
         "descripcion_perfil" => $request->descripcion_perfil,
     ]);
 
-    // ===========================
-    // 🟢 CAST + GUARDAR PERSONA
-    // ===========================
-    $updatePersona = [
-        "altura" => floatval($request->altura), // convierte string ➜ decimal
-        "peso"   => floatval($request->peso)
-    ];
+    // ======================= PERSONA =======================
+    $persona = $user->persona;
 
-    // 🟠 si trae imagen, convertir Base64 a BYTEA
-    if($request->imagen){
-        $bin = base64_decode($request->imagen);
-        $updatePersona['imagen'] = pg_escape_bytea($bin);
+    if ($request->has("nombres"))          $persona->nombres = $request->nombres;
+    if ($request->has("apellido_paterno")) $persona->apellido_paterno = $request->apellido_paterno;
+    if ($request->has("apellido_materno")) $persona->apellido_materno = $request->apellido_materno;
+    if ($request->has("telefono"))         $persona->telefono = $request->telefono;
+    if ($request->has("fecha_nacimiento")) $persona->fecha_nacimiento = $request->fecha_nacimiento;
+
+    $persona->altura = floatval($request->altura);
+    $persona->peso   = floatval($request->peso);
+
+    // Guardar imagen si viene
+    if ($request->filled('imagen')) {
+        $persona->imagen = base64_decode($request->imagen);
     }
 
-    $user->persona->update($updatePersona);
+    $persona->save();
 
+    // ======================= PROCESAR IMAGEN =======================
+    $img = $persona->imagen;
+
+    if (is_resource($img)) {
+        $img = stream_get_contents($img);
+    }
+
+    $imgBase64 = (!empty($img)) ? base64_encode($img) : null;
+
+    // ======================= RESPUESTA =======================
     return response()->json([
-    "success" => true,
-    "message" => "Perfil actualizado",
-    "usuario" => $user->load('persona') // 🔥 devuelve datos reales ya actualizados
-]);
+        "success" => true,
+        "message" => "Perfil actualizado",
+        "usuario" => [
+            "name" => $user->name,
+            "descripcion_perfil" => $user->descripcion_perfil,
+            "persona" => [
+                "nombres" => $persona->nombres,
+                "apellido_paterno" => $persona->apellido_paterno,
+                "apellido_materno" => $persona->apellido_materno,
+                "telefono" => $persona->telefono,
+                "altura" => (string) $persona->altura,
+                "peso" => (string) $persona->peso,
+                "fecha_nacimiento" => $persona->fecha_nacimiento,
+                "imagen" => $imgBase64
+            ]
+        ]
+    ]);
 }
 }

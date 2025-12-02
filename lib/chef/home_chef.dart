@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/receta_service.dart';
+import '../services/logout_service.dart';
 import '../models/receta_model.dart';
+import '../login.dart';
 import 'crear_receta.dart';
 import 'editar_receta.dart';
 import 'ver_receta_chef.dart';
@@ -1318,8 +1320,9 @@ class _HomeChefState extends State<HomeChef> {
     );
   }
 
-  void _cerrarSesion() {
-    showDialog(
+ Future<void> _cerrarSesion() async {
+    // Mostrar diálogo de confirmación
+    final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
@@ -1341,28 +1344,72 @@ class _HomeChefState extends State<HomeChef> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Aquí iría la lógica de cerrar sesión
-              // Por ahora solo navegamos de vuelta al login
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF44336),
             ),
             child: const Text(
-              'Cerrar Sesión',
+              'Sí, cerrar sesión',
               style: TextStyle(color: Colors.white),
             ),
           ),
         ],
       ),
     );
-  }
 
+    if (confirmar != true) return;
+
+    // Cerrar el modal de perfil si está abierto
+    Navigator.pop(context);
+
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFFFF8C21),
+        ),
+      ),
+    );
+
+    // Llamar al servicio de logout
+    final token = widget.usuario["token"] ?? "";
+    final res = await LogoutService.cerrarSesion(token);
+
+    // Cerrar loading
+    if (mounted) Navigator.pop(context);
+
+    if (res["success"] == true) {
+      // Redirigir al login (sin poder volver atrás)
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const Login()),
+          (route) => false,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("✓ Sesión cerrada correctamente"),
+            backgroundColor: Color(0xFF4CAF50),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res["message"] ?? "❌ Error al cerrar sesión"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
   Widget _buildEstadisticaDetalle(
     String titulo,
     String subtitulo,

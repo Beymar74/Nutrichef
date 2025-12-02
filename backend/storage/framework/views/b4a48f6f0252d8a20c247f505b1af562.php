@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Gestión de Usuarios'); ?>
 <?php $__env->startSection('titulo_pagina', 'Directorio de Usuarios'); ?>
 

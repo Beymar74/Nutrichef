@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Planificación Global'); ?>
 <?php $__env->startSection('titulo_pagina', 'Monitoreo de Comidas'); ?>
 

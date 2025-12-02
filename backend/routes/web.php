@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ComentarioController;
 use App\Http\Controllers\Admin\PlanificacionController;
 use App\Http\Controllers\Admin\ConfiguracionController;
+use App\Http\Controllers\Admin\SolicitudChefController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,8 +54,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/usuarios/{id}/edit', [UsuarioController::class, 'edit'])->name('usuarios.edit');
     Route::put('/usuarios/{id}', [UsuarioController::class, 'update'])->name('usuarios.update');
 
-    // --- PLANIFICACIÓN (FALTABA ESTO) ---
-    Route::get('/planificacion', [PlanificacionController::class, 'index'])->name('planificacion.index');
+// --- GESTIÓN DE SOLICITUDES CHEF ---
+Route::get('/solicitudes-chef', [SolicitudChefController::class, 'index'])->name('solicitudes.index');
+Route::get('/solicitudes-chef/{id}', [SolicitudChefController::class, 'show'])->name('solicitudes.show');
+Route::post('/solicitudes-chef/{id}/approve', [SolicitudChefController::class, 'approve'])->name('solicitudes.approve');
+Route::post('/solicitudes-chef/{id}/reject', [SolicitudChefController::class, 'reject'])->name('solicitudes.reject');
+Route::delete('/solicitudes-chef/{id}', [SolicitudChefController::class, 'destroy'])->name('solicitudes.destroy');
 
     // --- CONFIGURACIÓN (FALTABA ESTO) ---
     Route::get('/configuracion', [ConfiguracionController::class, 'index'])->name('configuracion.index');

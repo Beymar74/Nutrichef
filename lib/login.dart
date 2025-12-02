@@ -65,7 +65,7 @@ Future<void> _iniciarSesion() async {
     // Convertir a int si viene como String
     final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
     
-    if (rolNumerico == 2) {
+    if (rolNumerico == 3) {
       // ROL CHEF (id_rol = 2) → Redirigir a HomeChef
       print('✅ Redirigiendo a HomeChef');
       Navigator.of(context).pushReplacement(

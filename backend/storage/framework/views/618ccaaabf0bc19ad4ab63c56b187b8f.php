@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Moderación'); ?>
 <?php $__env->startSection('titulo_pagina', 'Comentarios de Usuarios'); ?>
 

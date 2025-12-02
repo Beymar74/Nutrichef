@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('titulo', 'Editar Usuario'); ?>
 <?php $__env->startSection('titulo_pagina', 'Gestión de Perfil'); ?>
 

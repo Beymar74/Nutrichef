@@ -39,7 +39,11 @@ class SubdominiosSeeder extends Seeder
                 'ELIMINADO_ADMIN',
                 'REPORTADO',
             ],
-
+            'ESTADO_SOLICITUD' => [
+                'PENDIENTE',
+                'APROBADA',
+                'RECHAZADA',
+            ],
             'TIPO_ALIMENTO' => [
                 'ITALIANA',
                 'HAMBURGUESAS',

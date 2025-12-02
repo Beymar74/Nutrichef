@@ -15,6 +15,7 @@ class DominiosSeeder extends Seeder
             'ESTADO_RECETA',
             'ESTADO_PUBLICACION',
             'ESTADO_COMENTARIO',
+            'ESTADO_SOLICITUD',
             'TIPO_ALIMENTO',
             'UNIDAD_MEDIDA',
             'DIETA',
@@ -50,6 +51,19 @@ class DominiosSeeder extends Seeder
                 DB::table('subdominios')->updateOrInsert(
                     [
                         'id_dominio' => $idEstadoReceta,
+                        'descripcion' => $estado
+                    ],
+                    ['updated_at' => $now, 'created_at' => $now]
+                );
+            }
+        }
+        $idEstadoSolicitud = DB::table('dominios')->where('descripcion', 'ESTADO_SOLICITUD')->value('id');
+        if ($idEstadoSolicitud) {
+            $estados = ['PENDIENTE', 'APROBADA', 'RECHAZADA'];
+            foreach ($estados as $estado) {
+                DB::table('subdominios')->updateOrInsert(
+                    [
+                        'id_dominio' => $idEstadoSolicitud,
                         'descripcion' => $estado
                     ],
                     ['updated_at' => $now, 'created_at' => $now]
