@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class PerfilUpdateService {
-  static const String baseUrl = "http://192.168.0.16:18000/api";
+  static const String baseUrl = "http://192.168.1.27:18000/api";
 
   static Future<Map<String, dynamic>> actualizarPerfilCompleto({
     required String token,

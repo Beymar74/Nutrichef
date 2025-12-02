@@ -50,7 +50,8 @@ class NombresComercialesSeeder extends Seeder
             'Gaseosa' => ['coca cola', 'pepsi', 'mendocina', 'simba', '7up', 'sprite'],
             'Yogurt' => ['pil', 'delizia', 'yogurt bebible', 'frutado'],
             'Chocolate' => ['el ceibo', 'breaker', 'bubbaloo', 'sublime', 'para ti'],
-            'Café' => ['copacabana', 'buen dia', 'nescafe', 'presto']
+            'Café' => ['copacabana', 'buen dia', 'nescafe', 'presto'],
+            'Mantequilla de Mani' => ['mantequilla de mani', 'marca2', 'marca3']
         ];
 
         foreach ($data as $nombreIngrediente => $marcas) {
