@@ -14,7 +14,7 @@ class DetallePublicacionScreen extends StatefulWidget {
 
   @override
   State<DetallePublicacionScreen> createState() =>
-      _DetallePublicacionScreenState();s
+      _DetallePublicacionScreenState();
 }
 
 class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {

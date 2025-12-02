@@ -431,7 +431,7 @@ class _FeedComunidadScreenState extends State<FeedComunidadScreen> {
               child: ListView.builder(
                 itemCount: service.posts.length,
                 itemBuilder: (context, index) {
-                  return _cardPublicacion(service.posts[index]);
+                  return _TarjetaPublicacion(service.posts[index]);
                 },
               ),
             ),
