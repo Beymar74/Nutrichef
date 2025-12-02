@@ -273,7 +273,11 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
   }
 
   // ✅ Función para guardar con validación mejorada
+  // Solo la función _guardar() mejorada
+  // El resto del código queda igual
+
   Future<void> _guardar() async {
+    // Validar descripción
     if (_descripcionCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -318,7 +322,7 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
 
     print("🔍 DEBUG: Iniciando publicación");
     print(
-      "📝 Descripción: ${_descripcionCtrl.text.trim().substring(0, 50)}...",
+      "📝 Descripción length: ${_descripcionCtrl.text.trim().length} caracteres",
     );
     print("🖼️ Imágenes: ${_imagenes.length}");
 
@@ -339,42 +343,52 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
           token,
         );
       }
+
+      setState(() => _enviando = false);
+
+      if (success) {
+        print("✅ Publicación exitosa");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("¡Publicación creada exitosamente!"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        // ❌ Mostrar error específico del servicio
+        final errorMsg =
+            comunidadService.ultimoError ??
+            "Error desconocido al crear publicación";
+
+        print("❌ Error: $errorMsg");
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: "Reintentar",
+              textColor: Colors.white,
+              onPressed: _guardar,
+            ),
+          ),
+        );
+      }
     } catch (e) {
-      print("❌ Error al crear publicación: $e");
-      success = false;
-    }
-    setState(() => _enviando = false);
-    if (success) {
-      print("✅ Publicación exitosa");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("¡Publicación creada exitosamente!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      Navigator.pop(context, true);
-    } else {
-      // ❌ Mostrar error específico del servicio
-      final errorMsg = comunidadService.ultimoError ?? 
-                      "Error desconocido al crear publicación";
-      
-      print("❌ Error: $errorMsg");
-      
+      setState(() => _enviando = false);
+
+      print("❌ EXCEPCIÓN CRÍTICA: $e");
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMsg),
+          content: Text("Error crítico: $e"),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: "Reintentar",
-            textColor: Colors.white,
-            onPressed: _guardar,
-          ),
+          duration: const Duration(seconds: 5),
         ),
       );
     }
   }
 }
-
-   

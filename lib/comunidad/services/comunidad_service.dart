@@ -71,7 +71,7 @@ class ComunidadService extends ChangeNotifier {
     
     print("📤 Iniciando subida con imágenes...");
     print("📝 URL: $baseUrl/publicaciones");
-    print("📝 Descripción: ${descripcion.substring(0, 50)}...");
+    print("📝 Descripción length: ${descripcion.length} caracteres");
     print("🖼️ Total imágenes: ${imagenes.length}");
 
     final url = Uri.parse("$baseUrl/publicaciones");
