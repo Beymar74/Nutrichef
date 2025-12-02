@@ -149,7 +149,7 @@ class _CardIngredienteState extends State<CardIngrediente> {
                 children: [
                   // Cantidad numérica
                   SizedBox(
-                    width: 50,
+                    width: 10,
                     child: TextField(
                       controller: cantidadCtrl,
                       keyboardType: TextInputType.number,
@@ -193,14 +193,14 @@ class _CardIngredienteState extends State<CardIngrediente> {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 65,
+                    width: 25,
                     child: Text(
                       widget.cantidad,
                       style: const TextStyle(fontFamily: "Poppins"),
                     ),
                   ),
                   SizedBox(
-                    width: 60,
+                    width: 80,
                     child: Text(
                       widget.unidad,
                       style: const TextStyle(fontFamily: "Poppins"),

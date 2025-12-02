@@ -29,23 +29,29 @@ class Receta {
   });
 
   factory Receta.fromJson(Map<String, dynamic> json) {
-    List<PasoReceta> pasos = _parsearPreparacion(json['preparacion']);
-    
+  List<PasoReceta> pasos = _parsearPreparacion(json['preparacion']);
+  
+  // ✅ PRINTS PARA DEBUG
+  print('🔧 Creando Receta desde JSON: ${json['titulo']}');
+  print('   imagen_url del JSON: ${json['imagen_url']}');
+  
+  String? imagenFinal = json['imagen_url'] ?? json['imagen'];
+  print('   imagen FINAL asignada: $imagenFinal');
 
-    return Receta(
-      id: json['id'] ?? 0,
-      titulo: json['titulo'] ?? 'Sin título',
-      resumen: json['resumen'],
-      tiempoPreparacion: json['tiempo_preparacion'],
-      preparacion: pasos,
-      porcionesEstimadas: json['porciones_estimadas'],
-      imagen: json['imagen'],
-      ingredientes: json['ingredientes'] ?? [],
-      dietas: json['dietas'] ?? [],
-      chef: json['chef'] ?? 'Chef Nutrichef',
-      chefUsername: json['chef_username'] ?? '@nutrichef',
-    );
-  }
+  return Receta(
+    id: json['id'] ?? 0,
+    titulo: json['titulo'] ?? 'Sin título',
+    resumen: json['resumen'],
+    tiempoPreparacion: json['tiempo_preparacion'],
+    preparacion: pasos,
+    porcionesEstimadas: json['porciones_estimadas'],
+    imagen: imagenFinal,
+    ingredientes: json['ingredientes'] ?? [],
+    dietas: json['dietas'] ?? [],
+    chef: json['chef'] ?? 'Chef Nutrichef',
+    chefUsername: json['chef_username'] ?? '@nutrichef',
+  );
+}
 
   static List<PasoReceta> _parsearPreparacion(dynamic preparacionData) {
     List<PasoReceta> pasos = [];

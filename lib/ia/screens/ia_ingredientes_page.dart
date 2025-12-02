@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import '../widgets/dialogo_eliminar.dart';
 import '../widgets/input_ingrediente.dart';
 import '../widgets/card_ingrediente.dart';
+import '../widgets/dialogo_alerta.dart'; 
 import 'ia_recetas_page.dart';
 import '../controllers/ia_controller.dart';
 
 class IaIngredientesPage extends StatefulWidget {
-  // Recibimos la lista detectada por la IA
   final List<dynamic>? ingredientesIniciales;
 
   const IaIngredientesPage({
@@ -24,18 +24,21 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
   bool _mostrarInput = false;
   bool _cargando = false; 
 
-  // Lista local de ingredientes
   List<Map<String, String>> ingredientes = [];
-
-  // Listas para los Dropdowns (Listas simples de String para Autocomplete)
   List<String> _catalogoIngredientesNombres = [];
   List<String> _catalogoUnidadesNombres = [];
+
+  static const String _alergenoPeligroso = "Mantequilla de Mani";
 
   @override
   void initState() {
     super.initState();
     _cargarDatosIniciales();
     _cargarCatalogos();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verificarSiExisteAlergeno();
+    });
   }
 
   void _cargarDatosIniciales() {
@@ -50,6 +53,29 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
     }
   }
 
+  void _verificarSiExisteAlergeno() {
+    final existeAlergeno = ingredientes.any(
+      (item) => item['nombre'] == _alergenoPeligroso
+    );
+
+    if (existeAlergeno) {
+      _mostrarDialogoAlergeno(_alergenoPeligroso);
+    }
+  }
+
+  void _mostrarDialogoAlergeno(String nombreIngrediente) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => DialogoAlerta(
+        ingrediente: nombreIngrediente,
+        onContinuar: () {
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
   Future<void> _cargarCatalogos() async {
     try {
       final resultados = await Future.wait([
@@ -60,7 +86,6 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
       if (!mounted) return;
 
       setState(() {
-        // Convertimos la respuesta JSON [{id:1, descripcion: "Ajo"}] a List<String> ["Ajo", ...]
         _catalogoIngredientesNombres = (resultados[0] as List)
             .map((item) => item['descripcion'].toString())
             .toList();
@@ -109,17 +134,13 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
     try {
       List<String> listaNombres = ingredientes.map((e) => e['nombre']!).toList();
       
-      // Llamada al backend
       final recetasEncontradas = await _iaController.buscarRecetas(listaNombres);
 
       if (!mounted) return;
 
-      // Navegación a resultados
       Navigator.push(
         context,
         MaterialPageRoute(
-          // OJO: Aquí es donde salía error antes si IaRecetasPage no tenía el parámetro 'recetas'.
-          // Asegúrate de que IaRecetasPage tenga: final List<dynamic> recetas; en su constructor.
           builder: (_) => IaRecetasPage(recetas: recetasEncontradas),
         ),
       );
@@ -141,6 +162,8 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true, // Permite que los botones suban con el teclado
+      
       appBar: AppBar(
         title: const Text(
           'Ingredientes',
@@ -161,167 +184,207 @@ class _IaIngredientesPageState extends State<IaIngredientesPage> {
 
       body: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hemos identificado los siguientes ingredientes. '
-                  'Si falta alguno añádelo, si hay alguno erróneo edítalo:',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    color: Color(0xFF333333),
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                // ------------------------------------------------------------------
-                //                LISTA DE INGREDIENTES
-                // ------------------------------------------------------------------
-                Expanded(
-                  child: ingredientes.isEmpty 
-                  ? const Center(child: Text("No hay ingredientes. Añade uno."))
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: ingredientes.length,
-                      itemBuilder: (context, index) {
-                        final item = ingredientes[index];
-
-                        return CardIngrediente(
-                          // AQUÍ ESTABA EL ERROR: Faltaba pasar las listas
-                          key: ValueKey('card_$index'),
-                          cantidad: item['cantidad']!,
-                          unidad: item['unidad']!,
-                          nombre: item['nombre']!,
-                          
-                          // Pasamos los catálogos cargados
-                          catalogoIngredientes: _catalogoIngredientesNombres,
-                          catalogoUnidades: _catalogoUnidadesNombres,
-                          
-                          onEditar: (nuevoCantidad, nuevaUnidad, nuevoNombre) {
-                            setState(() {
-                              ingredientes[index]['cantidad'] = nuevoCantidad;
-                              ingredientes[index]['unidad'] = nuevaUnidad;
-                              ingredientes[index]['nombre'] = nuevoNombre;
-                            });
-                          },
-                          onEliminar: () => _mostrarDialogoEliminar(index),
-                        );
-                      },
-                    ),
-                ),
-
-                const SizedBox(height: 10),
-
-                // ------------------------------------------------------------------
-                //            ANIMACIÓN DE INPUT (AÑADIR INGREDIENTE)
-                // ------------------------------------------------------------------
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _mostrarInput
-                      ? InputIngrediente(
-                          key: const ValueKey("inputIngrediente"),
-                          // AQUÍ ESTABA EL ERROR: Faltaba pasar las listas
-                          catalogoIngredientes: _catalogoIngredientesNombres,
-                          catalogoUnidades: _catalogoUnidadesNombres,
-                          
-                          onAgregar: (unidad, nombre) {
-                            if (_yaExiste(nombre)) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Este ingrediente ya existe."),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                              return;
-                            }
-
-                            setState(() {
-                              ingredientes.add({
-                                'cantidad': "1",
-                                'unidad': unidad.isEmpty ? 'unidad' : unidad,
-                                'nombre': nombre,
-                              });
-                              _mostrarInput = false;
-                            });
-                          },
-                          onEliminar: () {
-                            setState(() => _mostrarInput = false);
-                          },
-                        )
-                      : const SizedBox.shrink(),
-                ),
-
-                const SizedBox(height: 10),
-
-                // Botón Añadir
-                Center(
-                  child: SizedBox(
-                    width: botonAncho,
-                    child: ElevatedButton(
-                      onPressed: () => setState(() => _mostrarInput = true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF8C21),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        '+ Añadir Ingrediente',
+          // Usamos Column para dividir: Arriba (Scroll) y Abajo (Fijo)
+          Column(
+            children: [
+              // ---------------------------------------------------------
+              // PARTE SUPERIOR: SCROLLEABLE (Lista + Input)
+              // ---------------------------------------------------------
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Hemos identificado los siguientes ingredientes. '
+                        'Si falta alguno añádelo, si hay alguno erróneo edítalo:',
                         style: TextStyle(
-                          color: Colors.white,
                           fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
+                          fontSize: 14,
+                          color: Color(0xFF333333),
+                          height: 1.5,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 15),
+
+                      // Lista de ingredientes
+                      if (ingredientes.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(child: Text("No hay ingredientes. Añade uno.")),
+                        )
+                      else
+                        ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: ingredientes.length,
+                          itemBuilder: (context, index) {
+                            final item = ingredientes[index];
+
+                            return CardIngrediente(
+                              key: ValueKey('card_$index'),
+                              cantidad: item['cantidad']!,
+                              unidad: item['unidad']!,
+                              nombre: item['nombre']!,
+                              
+                              catalogoIngredientes: _catalogoIngredientesNombres,
+                              catalogoUnidades: _catalogoUnidadesNombres,
+                              
+                              onEditar: (nuevoCantidad, nuevaUnidad, nuevoNombre) {
+                                setState(() {
+                                  ingredientes[index]['cantidad'] = nuevoCantidad;
+                                  ingredientes[index]['unidad'] = nuevaUnidad;
+                                  ingredientes[index]['nombre'] = nuevoNombre;
+                                });
+
+                                if (nuevoNombre == _alergenoPeligroso) {
+                                   _mostrarDialogoAlergeno(nuevoNombre);
+                                }
+                              },
+                              onEliminar: () => _mostrarDialogoEliminar(index),
+                            );
+                          },
+                        ),
+
+                      const SizedBox(height: 10),
+
+                      // Input animado (se queda dentro del scroll para que suba si hace falta)
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _mostrarInput
+                            ? InputIngrediente(
+                                key: const ValueKey("inputIngrediente"),
+                                catalogoIngredientes: _catalogoIngredientesNombres,
+                                catalogoUnidades: _catalogoUnidadesNombres,
+                                
+                                onAgregar: (unidad, nombre) {
+                                  if (_yaExiste(nombre)) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Este ingrediente ya existe."),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() {
+                                    ingredientes.add({
+                                      'cantidad': "1",
+                                      'unidad': unidad.isEmpty ? 'unidad' : unidad,
+                                      'nombre': nombre,
+                                    });
+                                    _mostrarInput = false;
+                                  });
+
+                                  if (nombre == _alergenoPeligroso) {
+                                     _mostrarDialogoAlergeno(nombre);
+                                  }
+                                },
+                                onEliminar: () {
+                                  setState(() => _mostrarInput = false);
+                                },
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      
+                      // Espacio al final del scroll para que no choque con los botones fijos
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
+              ),
 
-                const SizedBox(height: 15),
-
-                // Botón Confirmar
-                Center(
-                  child: SizedBox(
-                    width: botonAncho,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _cargando ? null : _confirmarYBuscarRecetas,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF8C21),
-                        // withOpacity arreglado
-                        disabledBackgroundColor: const Color(0xFFFF8C21).withOpacity(0.6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                      ),
-                      child: _cargando
-                        ? const SizedBox(
-                            height: 24, 
-                            width: 24, 
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                          )
-                        : const Text(
-                          'Confirmar',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            fontSize: 16,
+              // ---------------------------------------------------------
+              // PARTE INFERIOR: BOTONES FIJOS
+              // ---------------------------------------------------------
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      offset: const Offset(0, -4),
+                      blurRadius: 10,
+                    )
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // Ocupa solo lo necesario
+                  children: [
+                    // Botón Añadir
+                    Center(
+                      child: SizedBox(
+                        width: botonAncho,
+                        child: ElevatedButton(
+                          onPressed: () {
+                             setState(() => _mostrarInput = true);
+                             // Opcional: Scrollear hacia abajo si quieres ver el input al abrirse
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF8C21),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            '+ Añadir Ingrediente',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
+                      ),
                     ),
-                  ),
-                ),
 
-                const SizedBox(height: 20),
-              ],
-            ),
+                    const SizedBox(height: 15),
+
+                    // Botón Confirmar
+                    Center(
+                      child: SizedBox(
+                        width: botonAncho,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _cargando ? null : _confirmarYBuscarRecetas,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF8C21),
+                            disabledBackgroundColor: const Color(0xFFFF8C21).withOpacity(0.6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                          ),
+                          child: _cargando
+                            ? const SizedBox(
+                                height: 24, 
+                                width: 24, 
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                              )
+                            : const Text(
+                              'Confirmar',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Un pequeño espacio abajo por si acaso (SafeArea)
+                    SizedBox(height: MediaQuery.of(context).padding.bottom > 0 ? 10 : 0),
+                  ],
+                ),
+              ),
+            ],
           ),
           
           if (_cargando)

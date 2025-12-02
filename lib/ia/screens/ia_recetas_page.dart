@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import '../widgets/barra_inferior.dart';
+import '../../screens/home/widgets/custom_bottom_nav.dart';
 import '../widgets/card_receta.dart';
+// IMPORTANTE: Ajusta esta ruta si tu archivo está en otra carpeta
+import '../../detalles-receta.dart'; 
+import '../../ia/screens/ia_inicio_page.dart';  // Para la Cámara
+import '../../recetas.dart';                    // Para RecetasModaScreen
 
 class IaRecetasPage extends StatefulWidget {
   // Recibimos la lista real del backend
@@ -8,7 +12,7 @@ class IaRecetasPage extends StatefulWidget {
 
   const IaRecetasPage({
     super.key,
-    required this.recetas, // Ahora es obligatorio
+    required this.recetas,
   });
 
   @override
@@ -17,7 +21,7 @@ class IaRecetasPage extends StatefulWidget {
 
 class _IaRecetasPageState extends State<IaRecetasPage>
     with SingleTickerProviderStateMixin {
-  int selectedIndex = 2; 
+  int selectedIndex = 2;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -63,8 +67,9 @@ class _IaRecetasPageState extends State<IaRecetasPage>
             children: const [
               Icon(Icons.search_off, size: 60, color: Colors.grey),
               SizedBox(height: 10),
-              Text("No encontramos recetas con esos ingredientes", 
-                style: TextStyle(fontFamily: 'Poppins', color: Colors.grey)
+              Text(
+                "No encontramos recetas con esos ingredientes",
+                style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
               ),
             ],
           ),
@@ -110,49 +115,94 @@ class _IaRecetasPageState extends State<IaRecetasPage>
             itemBuilder: (context, index) {
               final receta = widget.recetas[index];
 
-              // Mapeo de datos del Backend a la UI
-              // El backend devuelve: titulo, resumen, tiempo_preparacion, porciones_estimadas, imagen
-              return CardReceta(
-                imagen: receta['imagen'] ?? 'assets/images/1im.png', // Fallback si es null
-                titulo: receta['titulo'] ?? 'Sin título',
-                descripcion: receta['resumen'] ?? 'Sin descripción',
-                // El backend no devuelve rating aún, simulamos uno o lo sacas si no lo tienes
-                rating: 4.5, 
-                tiempo: "${receta['tiempo_preparacion']} min",
-                // El backend no devuelve favorito aún, asumimos false
-                favorito: false, 
-                
-                onTapFavorito: () {
-                  // Lógica local visual (no guarda en BD aún)
-                  setState(() {
-                    // Aquí podrías implementar la llamada al backend para guardar favorito
-                  });
+              // --- AQUI ESTA LA MAGIA DE LA NAVEGACION ---
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DetallesRecetaScreen(
+                        // Convertimos el objeto dynamic a Map seguro
+                        receta: Map<String, dynamic>.from(receta),
+                      ),
+                    ),
+                  );
                 },
+                child: CardReceta(
+                  imagen: receta['imagen'] ?? 'assets/images/1im.png', // Fallback si es null
+                  titulo: receta['titulo'] ?? 'Sin título',
+                  descripcion: receta['resumen'] ?? 'Sin descripción',
+                  // El backend no devuelve rating aún, simulamos uno
+                  rating: 4.5,
+                  tiempo: "${receta['tiempo_preparacion']} min",
+                  // El backend no devuelve favorito aún, asumimos false
+                  favorito: false,
+                  onTapFavorito: () {
+                    // Lógica local visual
+                    setState(() {
+                      // Aquí implementación futura de favorito
+                    });
+                  },
+                ),
               );
             },
           ),
         ),
       ),
 
-      // --- BARRA INFERIOR ---
-      bottomNavigationBar: SizedBox(
-        height: 90,
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: BarraInferior(
-                selectedIndex: selectedIndex,
-                onTap: (i) {
-                  setState(() => selectedIndex = i);
-                },
-              ),
+      // --- BARRA INFERIOR CON NAVEGACIÓN REAL ---
+      bottomNavigationBar: CustomBottomNav(
+        selectedIndex: selectedIndex,
+        onTap: (index) {
+          // 1. Actualizamos visualmente
+          setState(() => selectedIndex = index);
+
+          // 2. Lógica de navegación basada en tu HomeScreen
+          switch (index) {
+            case 0:
+              // Botón Home:
+              // Como estamos en una sub-pantalla, la forma más lógica de "ir al home"
+              // es cerrar esta pantalla y volver atrás.
+              Navigator.pop(context);
+              break;
+
+            case 1:
+              // Botón Chat:
+              // Igual que en tu HomeScreen, aún está pendiente de implementar.
+              // Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen()));
+              break;
+
+            case 2:
+              // Botón Capas / Recetas:
+              // Navega a la pantalla de Recetas de Moda
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RecetasModaScreen()),
+              );
+              break;
+
+            case 3:
+              // Botón Perfil:
+              // NOTA: Para usar la lógica completa de _abrirPerfil de tu HomeScreen,
+              // necesitaríamos tener el objeto 'usuario' aquí. 
+              // Por ahora, podrías dejarlo vacío o hacer un pop también.
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Accede al perfil desde el Inicio"))
+              );
+              break;
+          }
+        },
+        onCameraPressed: () {
+          // Acción del botón central (Cámara) -> Abre el módulo IA
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const IaInicioPage(),
             ),
-          ],
-        ),
+          );
+        },
       ),
+
     );
   }
 }

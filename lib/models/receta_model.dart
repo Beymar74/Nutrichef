@@ -58,7 +58,9 @@ class Receta {
       tiempoPreparacion: parseInt(json['tiempo_preparacion'], 0),
       preparacion: json['preparacion']?.toString() ?? '',
       porcionesEstimadas: parseInt(json['porciones_estimadas'], 1),
-      imagen: json['imagen']?.toString(),
+      
+      // ✅ CAMBIO AQUÍ: Primero busca imagen_url, luego imagen
+      imagen: json['imagen_url']?.toString() ?? json['imagen']?.toString(),
 
       // 🔥 Backend actual NO envía estos datos → ponemos valores por defecto
       chef: json['chef']?.toString() ?? 'Chef Nutrichef',
