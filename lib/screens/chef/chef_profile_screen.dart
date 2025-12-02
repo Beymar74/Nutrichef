@@ -120,7 +120,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
   String? _authToken;
 
   // CONFIGURACIÓN API
-  final String baseUrl = 'http://192.168.0.16:18000/api'; 
+  final String baseUrl = 'http://192.168.0.12:18000/api'; 
 
   @override
   void initState() {
