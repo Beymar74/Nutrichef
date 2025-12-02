@@ -12,7 +12,7 @@ class PerfilController extends Controller
     /**
      * 🧬 Actualizar alergias del usuario (array de IDs de subdominios)
      * Endpoint: PUT /perfil/alergias
-     * Body: { "alergias": [44, 48, 51] }
+     * Body: { "alergias": [44, 48, 51] } o { "alergias": [] } si no tiene
      */
     public function actualizarAlergias(Request $request)
     {
@@ -20,9 +20,10 @@ class PerfilController extends Controller
             $user = $request->user();
             $persona = $user->persona;
 
+            // ✅ Cambio clave: permitir array vacío con 'nullable'
             $validator = Validator::make($request->all(), [
-                'alergias'   => 'required|array',
-                'alergias.*' => 'integer|exists:subdominios,id',
+                'alergias'   => 'required|array',          // Debe ser un array (puede estar vacío)
+                'alergias.*' => 'nullable|integer|exists:subdominios,id', // ✅ nullable permite []
             ]);
 
             if ($validator->fails()) {
@@ -33,28 +34,40 @@ class PerfilController extends Controller
                 ], 422);
             }
 
-            $alergias = $request->input('alergias');
+            $alergias = $request->input('alergias', []); // Default a [] si no viene
 
-            // 🧹 Limpiar alergias anteriores
+            // 🧹 Limpiar alergias anteriores (siempre se ejecuta)
             DB::table('alergia_persona')
                 ->where('id_persona', $persona->id)
                 ->delete();
 
-            // 🔁 Insertar nuevas alergias
-            foreach ($alergias as $idAlergeno) {
-                DB::table('alergia_persona')->insert([
-                    'id_persona'  => $persona->id,
-                    'id_alergeno' => $idAlergeno,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
+            // 🔁 Insertar nuevas alergias (solo si hay alguna)
+            if (!empty($alergias)) {
+                $now = now();
+                $inserts = [];
+                
+                foreach ($alergias as $idAlergeno) {
+                    $inserts[] = [
+                        'id_persona'  => $persona->id,
+                        'id_alergeno' => $idAlergeno,
+                        'created_at'  => $now,
+                        'updated_at'  => $now,
+                    ];
+                }
+                
+                DB::table('alergia_persona')->insert($inserts);
             }
+
+            $mensaje = empty($alergias) 
+                ? "✅ Se eliminaron todas las alergias" 
+                : "🌟 Alergias actualizadas correctamente";
 
             return response()->json([
                 "success" => true,
-                "message" => "🌟 Alergias actualizadas correctamente",
+                "message" => $mensaje,
                 "total"   => count($alergias),
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 "success" => false,

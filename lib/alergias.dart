@@ -12,7 +12,6 @@ class Alergias extends StatefulWidget {
 }
 
 class _AlergiasState extends State<Alergias> {
-  /// 🔥 Alergenos con IDs reales de tu BD
   final List<Map<String, dynamic>> _alergenos = [
     {'nombre': 'Leche', 'id': 45, 'imagen': 'assets/images/leche.png', 'seleccionado': false},
     {'nombre': 'Huevos', 'id': 46, 'imagen': 'assets/images/huevo.png', 'seleccionado': false},
@@ -24,6 +23,7 @@ class _AlergiasState extends State<Alergias> {
 
   final TextEditingController _otrosController = TextEditingController();
   bool _noTengoAlergias = false;
+  bool _cargando = false; // ✅ Estado de carga
 
   void _toggleAlergeno(int index) {
     setState(() {
@@ -47,11 +47,9 @@ class _AlergiasState extends State<Alergias> {
   }
 
   Future<void> _continuar() async {
-    final token = widget.usuario["token"];
-
-    /// 🧠 Convertimos selección → IDs reales
+    // ✅ Validación: debe seleccionar algo O marcar "No tengo alergias"
     List<int> alergiasIds = [];
-
+    
     if (!_noTengoAlergias) {
       for (var a in _alergenos) {
         if (a['seleccionado']) {
@@ -60,32 +58,43 @@ class _AlergiasState extends State<Alergias> {
       }
     }
 
-    /// ⚠ Validación visual
+    // Si NO marcó "No tengo alergias" Y NO seleccionó ninguna alergia
     if (!_noTengoAlergias && alergiasIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Selecciona tus alergias o marca "No tengo alergias"'),
+          content: Text('Selecciona tus alergias o marca "No tengo ninguna alergia"'),
           backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
     }
 
-    /// 🟢 Enviar al backend
+    // ✅ Mostrar loading
+    setState(() => _cargando = true);
+
+    final token = widget.usuario["token"];
+
+    // ✅ Enviar al backend (puede ser lista vacía si marcó "No tengo alergias")
     final res = await PerfilService.actualizarAlergias(
       token: token,
-      alergiasIds: alergiasIds,  // 🔄 Lista de IDs
+      alergiasIds: alergiasIds,
     );
+
+    setState(() => _cargando = false);
+
+    if (!mounted) return;
 
     if (res["success"] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Alergias guardadas correctamente 🧬"),
+          content: Text(res["message"] ?? "Alergias guardadas correctamente 🧬"),
           backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
         ),
       );
 
-      /// 👉 ÚLTIMA PANTALLA → HOME
+      // Navegar al Home
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -97,6 +106,7 @@ class _AlergiasState extends State<Alergias> {
         SnackBar(
           content: Text(res["message"] ?? "❌ Error guardando alergias"),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -111,21 +121,20 @@ class _AlergiasState extends State<Alergias> {
           children: [
             const SizedBox(height: 20),
 
-            // 🔙 ATRÁS
+            // Botón Atrás
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: Color(0xFFFF8C21), size: 28),
+                    icon: const Icon(Icons.arrow_back, color: Color(0xFFFF8C21), size: 28),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
 
-            /// Progreso e instrucciones
+            // Barra de progreso
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -135,8 +144,7 @@ class _AlergiasState extends State<Alergias> {
                   value: 0.75,
                   minHeight: 8,
                   backgroundColor: Colors.grey[300],
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Color(0xFFFF8C21)),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFF8C21)),
                 ),
               ),
             ),
@@ -168,11 +176,11 @@ class _AlergiasState extends State<Alergias> {
                     ),
                     const SizedBox(height: 30),
 
+                    // Grid de alergenos
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
                         crossAxisSpacing: 15,
                         mainAxisSpacing: 15,
@@ -184,11 +192,16 @@ class _AlergiasState extends State<Alergias> {
 
                     const SizedBox(height: 30),
 
+                    // Checkbox "No tengo alergias"
                     CheckboxListTile(
                       value: _noTengoAlergias,
                       onChanged: _toggleNoAlergias,
                       activeColor: const Color(0xFFFF8C21),
-                      title: const Text("No tengo ninguna alergia"),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        "No tengo ninguna alergia",
+                        style: TextStyle(fontSize: 15),
+                      ),
                     ),
 
                     const SizedBox(height: 40),
@@ -197,27 +210,38 @@ class _AlergiasState extends State<Alergias> {
               ),
             ),
 
+            // Botón Finalizar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _continuar,
+                  onPressed: _cargando ? null : _continuar,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF8C21),
+                    disabledBackgroundColor: Colors.grey[400],
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  child: const Text(
-                    'Finalizar',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _cargando
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          'Finalizar',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             )
@@ -237,21 +261,31 @@ class _AlergiasState extends State<Alergias> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: sel ? const Color(0xFFFF8C21) : Colors.grey,
+            color: sel ? const Color(0xFFFF8C21) : Colors.grey[300]!,
             width: sel ? 2.5 : 1.5,
           ),
+          color: sel ? const Color(0xFFFF8C21).withOpacity(0.05) : Colors.white,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(a['imagen'], width: 65, height: 65),
+            Image.asset(
+              a['imagen'],
+              width: 65,
+              height: 65,
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(Icons.no_food, size: 65, color: Colors.grey[400]);
+              },
+            ),
             const SizedBox(height: 8),
             Text(
               a['nombre'],
               style: TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 color: sel ? const Color(0xFFFF8C21) : Colors.black87,
               ),
+              textAlign: TextAlign.center,
             )
           ],
         ),
