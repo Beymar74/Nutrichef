@@ -8,7 +8,7 @@ class NuevaPublicacionScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
 
   const NuevaPublicacionScreen({Key? key, required this.usuario})
-      : super(key: key);
+    : super(key: key);
 
   @override
   _NuevaPublicacionScreenState createState() => _NuevaPublicacionScreenState();
@@ -91,10 +91,7 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
                   ),
                   Text(
                     widget.usuario['username'] ?? '@usuario',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
                 ],
               ),
@@ -134,8 +131,10 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -170,10 +169,7 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.file(
-                        _imagenes[i],
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.file(_imagenes[i], fit: BoxFit.cover),
                     ),
                     // Botón eliminar
                     Positioned(
@@ -278,7 +274,6 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
 
   // ✅ Función para guardar con validación mejorada
   Future<void> _guardar() async {
-    // Validar descripción
     if (_descripcionCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -289,7 +284,6 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
       return;
     }
 
-    // Validar longitud mínima
     if (_descripcionCtrl.text.trim().length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -302,31 +296,56 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
 
     setState(() => _enviando = true);
 
-    final comunidadService =
-        Provider.of<ComunidadService>(context, listen: false);
+    final comunidadService = Provider.of<ComunidadService>(
+      context,
+      listen: false,
+    );
     final token = widget.usuario['token'];
+
+    // ✅ Verificar que el token existe
+    if (token == null || token.isEmpty) {
+      setState(() => _enviando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Error: No hay sesión activa. Inicia sesión nuevamente.",
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    print("🔍 DEBUG: Iniciando publicación");
+    print(
+      "📝 Descripción: ${_descripcionCtrl.text.trim().substring(0, 50)}...",
+    );
+    print("🖼️ Imágenes: ${_imagenes.length}");
 
     bool success;
 
-    if (_imagenes.isEmpty) {
-      // ✅ Sin imágenes
-      success = await comunidadService.crearPublicacion(
-        _descripcionCtrl.text.trim(),
-        token,
-      );
-    } else {
-      // ✅ Con imágenes
-      success = await comunidadService.crearPublicacionConImagenes(
-        _descripcionCtrl.text.trim(),
-        _imagenes,
-        token,
-      );
+    try {
+      if (_imagenes.isEmpty) {
+        print("📤 Publicando sin imágenes...");
+        success = await comunidadService.crearPublicacion(
+          _descripcionCtrl.text.trim(),
+          token,
+        );
+      } else {
+        print("📤 Publicando con ${_imagenes.length} imágenes...");
+        success = await comunidadService.crearPublicacionConImagenes(
+          _descripcionCtrl.text.trim(),
+          _imagenes,
+          token,
+        );
+      }
+    } catch (e) {
+      print("❌ Error al crear publicación: $e");
+      success = false;
     }
-
     setState(() => _enviando = false);
-
     if (success) {
-      // ✅ Mostrar mensaje de éxito
+      print("✅ Publicación exitosa");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("¡Publicación creada exitosamente!"),
@@ -334,15 +353,28 @@ class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context, true); // Volver al feed y recargar
+      Navigator.pop(context, true);
     } else {
-      // ❌ Mostrar error
+      // ❌ Mostrar error específico del servicio
+      final errorMsg = comunidadService.ultimoError ?? 
+                      "Error desconocido al crear publicación";
+      
+      print("❌ Error: $errorMsg");
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error al crear publicación. Intenta nuevamente."),
+        SnackBar(
+          content: Text(errorMsg),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: "Reintentar",
+            textColor: Colors.white,
+            onPressed: _guardar,
+          ),
         ),
       );
     }
   }
 }
+
+   
