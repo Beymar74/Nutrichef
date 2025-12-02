@@ -25,7 +25,7 @@ class _DetallesRecetaScreenState extends State<DetallesRecetaScreen> {
   int? _currentUserId;
   
   // CONFIGURACIÓN API (Tu IP corregida)
-  final String baseUrl = 'http://192.168.0.16:18000/api'; 
+  final String baseUrl = 'http://192.168.0.12:18000/api'; 
 
   @override
   void initState() {
