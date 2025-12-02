@@ -1,97 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/comunidad_service.dart';
 import 'barra_reacciones.dart';
+import 'menu_opciones_post.dart';
 
 class TarjetaPublicacion extends StatelessWidget {
-  final int idPublicacion;
-  final String token; // ✅ Agregar token
+  final Map<String, dynamic> publicacion;
 
-  const TarjetaPublicacion({
-    Key? key, 
-    required this.idPublicacion,
-    required this.token, // ✅ Requerir token
-  }) : super(key: key);
-
-  // Helper para formatear fecha
-  String _formatearFecha(String? fecha) {
-    if (fecha == null) return 'Fecha desconocida';
-    
-    try {
-      final dateTime = DateTime.parse(fecha);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-      
-      if (difference.inDays > 0) {
-        return 'hace ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
-      } else if (difference.inHours > 0) {
-        return 'hace ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
-      } else if (difference.inMinutes > 0) {
-        return 'hace ${difference.inMinutes} minuto${difference.inMinutes > 1 ? 's' : ''}';
-      } else {
-        return 'hace un momento';
-      }
-    } catch (e) {
-      return 'Fecha desconocida';
-    }
-  }
+  const TarjetaPublicacion({Key? key, required this.publicacion}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final comunidadService = Provider.of<ComunidadService>(context);
-
-    // Buscar la publicación
-    final post = comunidadService.posts.firstWhere(
-      (post) => post['id'] == idPublicacion,
-      orElse: () => {}, // ✅ Evitar error si no se encuentra
-    );
-
-    // ✅ Si no se encuentra la publicación
-    if (post.isEmpty) {
-      return const Card(
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('Publicación no encontrada'),
-        ),
-      );
-    }
-
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
       elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ✅ Descripción (en lugar de titulo y contenido)
-            Text(
-              post['descripcion'] ?? 'Sin descripción',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cabecera de la publicación
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Colors.orange,
+                  child: Text(publicacion['usuario']['name'][0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(publicacion['usuario']['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(publicacion['created_at'], style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                MenuOpcionesPost(idPublicacion: publicacion['id'], idUsuarioPost: publicacion['usuario']['id']),
+              ],
             ),
-            const SizedBox(height: 8),
-            
-            // Fecha
-            Text(
-              'Publicado el ${_formatearFecha(post['created_at'])}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+          ),
+
+          // Descripción de la publicación
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Text(publicacion['descripcion'], style: const TextStyle(fontSize: 15)),
+          ),
+          const SizedBox(height: 8),
+
+          // Barra de reacciones
+          BarraReacciones(idPublicacion: publicacion['id'], token: 'user_token'), // Referenciado directamente
+
+          // Mostrar imágenes si hay
+          if (publicacion['imagenes'] != null && publicacion['imagenes'].isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Image.network(publicacion['imagenes'][0]), // Asegúrate de que 'imagenes' sea una lista
             ),
-            const SizedBox(height: 12),
-            
-            // ✅ Barra de reacciones con token
-            BarraReacciones(
-              idPublicacion: idPublicacion,
-              token: token,
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

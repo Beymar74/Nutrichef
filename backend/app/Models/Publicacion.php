@@ -49,4 +49,9 @@ class Publicacion extends Model
     {
         return $this->hasMany(Calificacion::class, 'id_publicacion');
     }
+    public function imagenes()
+{
+    return $this->hasMany(ImagenPublicacion::class, 'id_publicacion');
+}
+
 }

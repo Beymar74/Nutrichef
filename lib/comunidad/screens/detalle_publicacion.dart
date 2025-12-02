@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/comunidad_service.dart';
-import '../widgets/barra_reacciones.dart';
 
 class DetallePublicacionScreen extends StatefulWidget {
   final int idPublicacion;
@@ -14,12 +13,14 @@ class DetallePublicacionScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _DetallePublicacionScreenState createState() => _DetallePublicacionScreenState();
+  State<DetallePublicacionScreen> createState() =>
+      _DetallePublicacionScreenState();
 }
 
 class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
-  final TextEditingController _comentarioController = TextEditingController();
-  bool _enviandoComentario = false;
+  final TextEditingController _comentarioCtrl = TextEditingController();
+  bool enviando = false;
+  Map<String, dynamic>? post;
 
   @override
   void initState() {
@@ -28,337 +29,329 @@ class _DetallePublicacionScreenState extends State<DetallePublicacionScreen> {
   }
 
   Future<void> _cargarDatos() async {
-    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = widget.usuario['token'] ?? '';
-    
-    await comunidadService.obtenerPublicacionPorId(widget.idPublicacion, token);
-    await comunidadService.obtenerComentarios(widget.idPublicacion, token);
-  }
+    final service = Provider.of<ComunidadService>(context, listen: false);
+    final token = widget.usuario['token'];
 
-  Future<void> _agregarComentario() async {
-    if (_comentarioController.text.trim().isEmpty) return;
-
-    setState(() => _enviandoComentario = true);
-
-    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = widget.usuario['token'] ?? '';
-
-    final response = await comunidadService.agregarComentario(
+    final data = await service.obtenerPublicacionPorId(
       widget.idPublicacion,
-      _comentarioController.text.trim(),
       token,
     );
 
-    setState(() => _enviandoComentario = false);
-
-    if (response['success'] == true) {
-      _comentarioController.clear();
-      FocusScope.of(context).unfocus();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Comentario agregado')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? 'Error al comentar')),
-      );
+    if (mounted) {
+      setState(() => post = data);
     }
+
+    await service.obtenerComentarios(widget.idPublicacion, token);
   }
 
-  String _formatearFecha(String? fecha) {
-    if (fecha == null) return 'Fecha desconocida';
-    
-    try {
-      final dateTime = DateTime.parse(fecha);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-      
-      if (difference.inDays > 0) {
-        return 'hace ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
-      } else if (difference.inHours > 0) {
-        return 'hace ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
-      } else if (difference.inMinutes > 0) {
-        return 'hace ${difference.inMinutes} minuto${difference.inMinutes > 1 ? 's' : ''}';
-      } else {
-        return 'hace un momento';
-      }
-    } catch (e) {
-      return 'Fecha desconocida';
-    }
+  String formatFecha(String fecha) {
+    final date = DateTime.parse(fecha);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inDays > 0) return "hace ${diff.inDays} día(s)";
+    if (diff.inHours > 0) return "hace ${diff.inHours} hora(s)";
+    if (diff.inMinutes > 0) return "hace ${diff.inMinutes} minuto(s)";
+    return "hace un momento";
+  }
+
+  Future<void> enviarComentario() async {
+    if (_comentarioCtrl.text.trim().isEmpty) return;
+
+    setState(() => enviando = true);
+
+    await Provider.of<ComunidadService>(context, listen: false)
+        .agregarComentario(
+      widget.idPublicacion,
+      _comentarioCtrl.text.trim(),
+      widget.usuario['token'],
+    );
+
+    _comentarioCtrl.clear();
+    FocusScope.of(context).unfocus();
+
+    setState(() => enviando = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final comunidadService = Provider.of<ComunidadService>(context);
-    final token = widget.usuario['token'] ?? '';
+    final service = Provider.of<ComunidadService>(context);
+    final comentarios = service.comentarios;
 
-    if (comunidadService.loading) {
+    if (post == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Publicación'),
-          backgroundColor: const Color(0xFFFF8C21),
-        ),
+        appBar: _appbar(),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (comunidadService.posts.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Publicación'),
-          backgroundColor: const Color(0xFFFF8C21),
-        ),
-        body: const Center(child: Text('Publicación no encontrada')),
-      );
-    }
-
-    final post = comunidadService.posts.first;
-    final comentarios = comunidadService.comentarios;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Publicación'),
-        backgroundColor: const Color(0xFFFF8C21),
-      ),
+      appBar: _appbar(),
       body: Column(
         children: [
-          // Contenido scrolleable
           Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Card de la publicación
-                  Card(
-                    margin: const EdgeInsets.all(8),
-                    elevation: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header: Usuario + Fecha
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: const Color(0xFFFF8C21),
-                                child: const Text(
-                                  'U',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Usuario',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                      ),
-                                    ),
-                                    Text(
-                                      _formatearFecha(post['created_at']),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+            child: ListView(
+              padding: const EdgeInsets.all(10),
+              children: [
+                _cardPublicacion(post!),
+                const SizedBox(height: 10),
 
-                        // Contenido
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                          child: Text(
-                            post['descripcion'] ?? 'Sin descripción',
-                            style: const TextStyle(fontSize: 15),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        const Divider(height: 1),
-
-                        // Barra de reacciones
-                        BarraReacciones(
-                          idPublicacion: post['id'],
-                          token: token,
-                        ),
-                      ],
-                    ),
+                Text(
+                  "Comentarios (${comentarios.length})",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
-
-                  // Sección de comentarios
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      'Comentarios (${comentarios.length})',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  // Lista de comentarios
-                  if (comentarios.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: Center(
-                        child: Text(
-                          'No hay comentarios aún.\n¡Sé el primero en comentar!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    )
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: comentarios.length,
-                      itemBuilder: (context, index) {
-                        final comentario = comentarios[index];
-                        return _buildComentario(comentario);
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          // Input de comentario (fijo en la parte inferior)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, -3),
                 ),
+                const SizedBox(height: 10),
+
+                if (comentarios.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        "No hay comentarios.\n¡Sé el primero!",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  ...comentarios.map((c) => _cardComentario(c)).toList()
               ],
             ),
-            padding: const EdgeInsets.all(8.0),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: const Color(0xFFFF8C21),
-                    child: Text(
-                      widget.usuario['name']?[0].toUpperCase() ?? 'U',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _comentarioController,
-                      decoration: InputDecoration(
-                        hintText: 'Escribe un comentario...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                      ),
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _enviandoComentario
-                      ? const SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : IconButton(
-                          icon: const Icon(
-                            Icons.send,
-                            color: Color(0xFFFF8C21),
-                          ),
-                          onPressed: _agregarComentario,
-                        ),
-                ],
-              ),
-            ),
           ),
+
+          _inputComentario(),
         ],
       ),
     );
   }
 
-  Widget _buildComentario(Map<String, dynamic> comentario) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+  // ===============================
+  // APPBAR
+  // ===============================
+  AppBar _appbar() {
+    return AppBar(
+      title: const Text("Publicación"),
+      backgroundColor: Colors.orange,
+    );
+  }
+
+  // ===============================
+  // CARD DE PUBLICACIÓN
+  // ===============================
+  Widget _cardPublicacion(Map<String, dynamic> p) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Usuario + avatar
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundImage: p["usuario"]["avatar"] != null
+                      ? NetworkImage(p["usuario"]["avatar"])
+                      : null,
+                  child: p["usuario"]["avatar"] == null
+                      ? const Icon(Icons.person)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p["usuario"]["name"],
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      p["usuario"]["username"],
+                      style: TextStyle(color: Colors.grey[600]),
+                    )
+                  ],
+                )
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              p["descripcion"],
+              style: const TextStyle(fontSize: 15),
+            ),
+
+            const SizedBox(height: 12),
+
+            // IMÁGENES
+            if (p["imagenes"] != null && p["imagenes"].isNotEmpty)
+              SizedBox(
+                height: 200,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: p["imagenes"].length,
+                  itemBuilder: (_, i) => Container(
+                    width: 200,
+                    margin: const EdgeInsets.only(right: 10),
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: NetworkImage(p["imagenes"][i]),
+                        fit: BoxFit.cover,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              formatFecha(p['created_at']),
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+
+            const Divider(),
+
+            // LIKE - COMENTAR
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                InkWell(
+                  onTap: () =>
+                      Provider.of<ComunidadService>(context, listen: false)
+                          .likeToggle(
+                    p['id'],
+                    widget.usuario['token'],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        p['ya_dio_like'] == true
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 5),
+                      Text("${p['likes_count']} Me gusta"),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.comment, color: Colors.orange),
+                    const SizedBox(width: 5),
+                    Text("${p['comentarios_count']} Comentarios"),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===============================
+  // CARD DE COMENTARIO
+  // ===============================
+  Widget _cardComentario(dynamic c) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 16,
-            backgroundColor: const Color(0xFFFFD54F),
-            child: const Text(
-              'U',
-              style: TextStyle(color: Colors.black87, fontSize: 12),
-            ),
+            radius: 18,
+            backgroundColor: Colors.orange[200],
+            child: const Icon(Icons.person),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Usuario',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                  Text(
+                    c["usuario"]["name"],
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    comentario['contenido'] ?? '',
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  Text(c["contenido"]),
                   const SizedBox(height: 4),
                   Text(
-                    _formatearFecha(comentario['created_at']),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
+                    formatFecha(c["created_at"]),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
                   ),
                 ],
               ),
             ),
-          ),
+          )
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _comentarioController.dispose();
-    super.dispose();
+  // ===============================
+  // INPUT DE COMENTARIO
+  // ===============================
+  Widget _inputComentario() {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.orange,
+              child: Text(
+                widget.usuario['name'][0].toUpperCase(),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: _comentarioCtrl,
+                decoration: InputDecoration(
+                  hintText: "Escribe un comentario...",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            enviando
+                ? const SizedBox(
+                    width: 25,
+                    height: 25,
+                    child:
+                        CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.send, color: Colors.orange),
+                    onPressed: enviarComentario,
+                  )
+          ],
+        ),
+      ),
+    );
   }
 }

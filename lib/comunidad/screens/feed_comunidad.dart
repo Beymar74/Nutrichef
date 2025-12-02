@@ -1,417 +1,268 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/comunidad_service.dart';
-import '../widgets/barra_reacciones.dart';
 import 'detalle_publicacion.dart';
 import 'nueva_publicacion.dart';
 
 class FeedComunidadScreen extends StatefulWidget {
   final Map<String, dynamic> usuario;
 
-  const FeedComunidadScreen({Key? key, required this.usuario})
-    : super(key: key);
+  const FeedComunidadScreen({Key? key, required this.usuario}) : super(key: key);
 
   @override
-  _FeedComunidadScreenState createState() => _FeedComunidadScreenState();
+  State<FeedComunidadScreen> createState() => _FeedComunidadScreenState();
 }
 
 class _FeedComunidadScreenState extends State<FeedComunidadScreen> {
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final comunidadService = Provider.of<ComunidadService>(
-        context,
-        listen: false,
-      );
-      final token = widget.usuario['token'] ?? '';
-
-      if (comunidadService.posts.isEmpty && !comunidadService.loading) {
-        comunidadService.cargarFeed(token);
-      }
+      final service = Provider.of<ComunidadService>(context, listen: false);
+      service.cargarFeed(widget.usuario['token']);
     });
   }
 
-  Future<void> _refrescarFeed() async {
-    final comunidadService = Provider.of<ComunidadService>(
-      context,
-      listen: false,
-    );
-    final token = widget.usuario['token'] ?? '';
-    await comunidadService.cargarFeed(token);
+  Future<void> _refresh() async {
+    final service = Provider.of<ComunidadService>(context, listen: false);
+    await service.cargarFeed(widget.usuario['token']);
   }
 
-  void _mostrarMenuOpciones(int idPublicacion, int idUsuarioPost) {
-    final token = widget.usuario['token'] ?? '';
-    final esPropia = widget.usuario['id'] == idUsuarioPost;
+  // ======================
+  // FORMATEAR FECHA
+  // ======================
+  String formatearFecha(String fecha) {
+    final date = DateTime.parse(fecha);
+    final diff = DateTime.now().difference(date);
 
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (esPropia) ...[
-                ListTile(
-                  leading: const Icon(Icons.edit, color: Color(0xFFFF8C21)),
-                  title: const Text('Editar publicación'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _editarPublicacion(idPublicacion);
-                  },
+    if (diff.inDays > 0) return "hace ${diff.inDays} día(s)";
+    if (diff.inHours > 0) return "hace ${diff.inHours} hora(s)";
+    if (diff.inMinutes > 0) return "hace ${diff.inMinutes} minuto(s)";
+    return "hace un momento";
+  }
+
+  // ======================
+  // TARJETA DE PUBLICACIÓN
+  // ======================
+  Widget _cardPublicacion(dynamic post) {
+    final esPropia = post['usuario']['id'] == widget.usuario['id'];
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // HEADER: avatar + nombre + menú
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundImage: post['usuario']['avatar'] != null
+                      ? NetworkImage(post['usuario']['avatar'])
+                      : null,
+                  child: post['usuario']['avatar'] == null
+                      ? const Icon(Icons.person)
+                      : null,
                 ),
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Eliminar publicación'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _confirmarEliminar(idPublicacion);
-                  },
+                const SizedBox(width: 12),
+
+                // Nombre y username
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        post['usuario']['name'],
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      Text(
+                        post['usuario']['username'],
+                        style:
+                            TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
+
+                // Menú opciones
+                PopupMenuButton(
+                  onSelected: (value) {
+                    if (value == "reportar") {
+                      _reportar(post['id']);
+                    }
+                    if (value == "eliminar") {
+                      _eliminar(post['id']);
+                    }
+                    if (value == "ocultar") {
+                      Provider.of<ComunidadService>(context, listen: false)
+                          .ocultarPublicacion(post['id']);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (!esPropia)
+                      const PopupMenuItem(
+                        value: "reportar",
+                        child: Text("Reportar"),
+                      ),
+                    const PopupMenuItem(
+                      value: "ocultar",
+                      child: Text("Ocultar"),
+                    ),
+                    if (esPropia)
+                      const PopupMenuItem(
+                        value: "eliminar",
+                        child: Text("Eliminar"),
+                      ),
+                  ],
+                )
               ],
-              ListTile(
-                leading: const Icon(Icons.visibility_off, color: Colors.grey),
-                title: const Text('Ocultar publicación'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Publicación ocultada')),
-                  );
-                },
-              ),
-              if (!esPropia)
-                ListTile(
-                  leading: const Icon(Icons.flag, color: Colors.orange),
-                  title: const Text('Reportar publicación'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _reportarPublicacion(idPublicacion);
-                  },
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
+            ),
 
-  void _confirmarEliminar(int idPublicacion) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar publicación'),
-        content: const Text(
-          '¿Estás seguro de que deseas eliminar esta publicación?',
+            const SizedBox(height: 10),
+
+            // DESCRIPCIÓN
+            Text(post['descripcion'], style: const TextStyle(fontSize: 15)),
+            const SizedBox(height: 10),
+
+            // IMÁGENES (máx 3)
+            if (post['imagenes'].isNotEmpty)
+              SizedBox(
+                height: 160,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: post['imagenes'].length,
+                  itemBuilder: (context, index) => Container(
+                    margin: const EdgeInsets.only(right: 10),
+                    width: 160,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: NetworkImage(post['imagenes'][index]),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 10),
+
+            // FECHA
+            Text(
+              formatearFecha(post['created_at']),
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+
+            const Divider(),
+
+            // REACCIONES
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                // LIKE
+                InkWell(
+                  onTap: () =>
+                      Provider.of<ComunidadService>(context, listen: false)
+                          .likeToggle(post['id'], widget.usuario['token']),
+                  child: Row(
+                    children: [
+                      Icon(
+                        post['ya_dio_like'] == true
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 6),
+                      Text("${post['likes_count']} Me gusta"),
+                    ],
+                  ),
+                ),
+
+                // COMENTAR
+                InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetallePublicacionScreen(
+                        idPublicacion: post['id'],
+                        usuario: widget.usuario,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.comment, color: Colors.orange),
+                      const SizedBox(width: 6),
+                      Text("${post['comentarios_count']} Comentarios"),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _eliminarPublicacion(idPublicacion);
-            },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }
 
-  void _eliminarPublicacion(int idPublicacion) async {
-    final comunidadService = Provider.of<ComunidadService>(
-      context,
-      listen: false,
-    );
-    final token = widget.usuario['token'] ?? '';
-
-    final response = await comunidadService.eliminarPublicacion(
-      idPublicacion,
-      token,
-    );
-
-    if (mounted) {
-      if (response['success'] == true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Publicación eliminada")));
-        comunidadService.cargarFeed(token);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'] ?? "Error al eliminar")),
-        );
-      }
-    }
+  // ======================
+  // ELIMINAR
+  // ======================
+  void _eliminar(int id) async {
+    final service = Provider.of<ComunidadService>(context, listen: false);
+    await service.eliminarPublicacion(id, widget.usuario['token']);
+    _refresh();
   }
 
-  void _editarPublicacion(int idPublicacion) {
-    // TODO: Implementar navegación a pantalla de edición
+  // ======================
+  // REPORTAR
+  // ======================
+  void _reportar(int id) async {
+    final service = Provider.of<ComunidadService>(context, listen: false);
+    await service.reportarPublicacion(id, widget.usuario['token']);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Función de editar en desarrollo')),
+      const SnackBar(content: Text("Publicación reportada")),
     );
   }
 
-  void _reportarPublicacion(int idPublicacion) async {
-    final comunidadService = Provider.of<ComunidadService>(
-      context,
-      listen: false,
-    );
-    final token = widget.usuario['token'] ?? '';
-
-    final response = await comunidadService.reportarPublicacion(
-      idPublicacion,
-      token,
-    );
-
-    if (mounted) {
-      if (response['success'] == true) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Publicación reportada")));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'] ?? "Error al reportar")),
-        );
-      }
-    }
-  }
-
-  String _formatearFecha(String? fecha) {
-    if (fecha == null) return 'Fecha desconocida';
-
-    try {
-      final dateTime = DateTime.parse(fecha);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-
-      if (difference.inDays > 0) {
-        return 'hace ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
-      } else if (difference.inHours > 0) {
-        return 'hace ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
-      } else if (difference.inMinutes > 0) {
-        return 'hace ${difference.inMinutes} minuto${difference.inMinutes > 1 ? 's' : ''}';
-      } else {
-        return 'hace un momento';
-      }
-    } catch (e) {
-      return 'Fecha desconocida';
-    }
-  }
-
+  // ======================
+  // BUILD
+  // ======================
   @override
   Widget build(BuildContext context) {
-    final comunidadService = Provider.of<ComunidadService>(context);
-    final token = widget.usuario['token'] ?? '';
+    final service = Provider.of<ComunidadService>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Comunidad'),
-        backgroundColor: const Color(0xFFFF8C21),
-        elevation: 1,
+        title: const Text("Comunidad"),
+        backgroundColor: Colors.orange,
       ),
-      body: comunidadService.loading
+
+      body: service.loading
           ? const Center(child: CircularProgressIndicator())
-          : comunidadService.posts.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.forum_outlined, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay publicaciones disponibles',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: _refrescarFeed,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Recargar'),
-                  ),
-                ],
-              ),
-            )
           : RefreshIndicator(
-              onRefresh: _refrescarFeed,
-              color: const Color(0xFFFF8C21),
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: comunidadService.posts.length,
-                itemBuilder: (context, index) {
-                  final post = comunidadService.posts[index];
-
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => DetallePublicacionScreen(
-                            idPublicacion: post['id'],
-                            usuario: widget.usuario,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(
-                        vertical: 4,
-                        horizontal: 8,
-                      ),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header: Usuario + Fecha + Menú
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Row(
-                              children: [
-                                // Avatar
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: const Color(0xFFFF8C21),
-                                  child: Text(
-                                    widget.usuario['name']?[0].toUpperCase() ??
-                                        'U',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-
-                                // Nombre y fecha
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        widget.usuario['name'] ?? 'Usuario',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      Text(
-                                        _formatearFecha(post['created_at']),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Menú de opciones
-                                IconButton(
-                                  icon: const Icon(Icons.more_horiz),
-                                  onPressed: () {
-                                    _mostrarMenuOpciones(
-                                      post['id'],
-                                      post['id_usuario'] ?? 0,
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Contenido de la publicación
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0,
-                            ),
-                            child: Text(
-                              post['descripcion'] ?? 'Sin descripción',
-                              style: const TextStyle(fontSize: 15),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Contadores (likes y comentarios)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12.0,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.thumb_up,
-                                  size: 16,
-                                  color: Colors.grey[600],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '0',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 13,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Icon(
-                                  Icons.comment,
-                                  size: 16,
-                                  color: Colors.grey[600],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '0 comentarios',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-
-                          const Divider(height: 1),
-
-                          // Barra de reacciones
-                          BarraReacciones(
-                            idPublicacion: post['id'],
-                            token: token,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              onRefresh: _refresh,
+              child: ListView(
+                children: service.posts.map((p) => _cardPublicacion(p)).toList(),
               ),
             ),
-      // Botón flotante para crear nueva publicación
+
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.orange,
+        child: const Icon(Icons.add),
         onPressed: () async {
-          final resultado = await Navigator.push(
+          final creado = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => NuevaPublicacionScreen(usuario: widget.usuario),
             ),
           );
-
-          // Si se creó una publicación, recargar el feed
-          if (resultado == true) {
-            _refrescarFeed();
-          }
+          if (creado == true) _refresh();
         },
-        backgroundColor: const Color(0xFFFF8C21),
-        child: const Icon(Icons.add),
       ),
     );
   }

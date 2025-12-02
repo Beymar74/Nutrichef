@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/comunidad_service.dart';
 
@@ -12,183 +14,171 @@ class NuevaPublicacionScreen extends StatefulWidget {
 }
 
 class _NuevaPublicacionScreenState extends State<NuevaPublicacionScreen> {
-  final TextEditingController _contenidoController = TextEditingController();
-  bool _creando = false;
-
-  Future<void> _crearPublicacion() async {
-    if (_contenidoController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Escribe algo antes de publicar')),
-      );
-      return;
-    }
-
-    setState(() => _creando = true);
-
-    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = widget.usuario['token'] ?? '';
-
-    final response = await comunidadService.crearPublicacion(
-      '', // titulo (no lo usamos, solo descripcion)
-      _contenidoController.text.trim(),
-      token,
-    );
-
-    setState(() => _creando = false);
-
-    if (mounted) {
-      if (response['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Publicación creada exitosamente')),
-        );
-        Navigator.pop(context, true); // Retornar true para recargar el feed
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['message'] ?? 'Error al crear publicación')),
-        );
-      }
-    }
-  }
+  final TextEditingController _descripcionCtrl = TextEditingController();
+  final List<File> _imagenes = [];
+  bool _enviando = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crear publicación'),
-        backgroundColor: const Color(0xFFFF8C21),
+        title: const Text("Nueva Publicación"),
+        backgroundColor: Colors.orange,
         actions: [
-          if (_creando)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: _crearPublicacion,
-              child: const Text(
-                'PUBLICAR',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+          TextButton(
+            onPressed: _enviando ? null : _guardar,
+            child: Text(
+              "Guardar",
+              style: TextStyle(
+                color: _enviando ? Colors.grey[300] : Colors.white,
+                fontSize: 16,
               ),
             ),
+          ),
         ],
       ),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.all(15),
         children: [
-          // Header con usuario
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: const Color(0xFFFF8C21),
-                  child: Text(
-                    widget.usuario['name']?[0].toUpperCase() ?? 'U',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+          // Campo de descripción
+          TextField(
+            controller: _descripcionCtrl,
+            maxLines: 5,
+            decoration: InputDecoration(
+              hintText: "Escribe una descripción...",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Agregar imágenes
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: _seleccionarImagen,
+                icon: const Icon(Icons.image),
+                label: const Text("Agregar imagen"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              const SizedBox(width: 10),
+              Text("(${_imagenes.length}/3)"),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          // Previsualizar imágenes
+          if (_imagenes.isNotEmpty)
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: List.generate(_imagenes.length, (i) {
+                return Stack(
                   children: [
-                    Text(
-                      widget.usuario['name'] ?? 'Usuario',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(
+                        _imagenes[i],
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Icon(Icons.public, size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Público',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                    Positioned(
+                      right: 5,
+                      top: 5,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _imagenes.removeAt(i);
+                          });
+                        },
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ],
-                ),
-              ],
+                );
+              }),
             ),
-          ),
 
-          const Divider(height: 1),
+          const SizedBox(height: 30),
 
-          // Área de texto
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _contenidoController,
-                maxLines: null,
-                expands: true,
-                autofocus: true,
-                textAlignVertical: TextAlignVertical.top,
-                decoration: const InputDecoration(
-                  hintText: '¿Qué estás pensando?',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                style: const TextStyle(fontSize: 16),
-                textCapitalization: TextCapitalization.sentences,
-              ),
+          // Indicador de carga
+          if (_enviando)
+            const Center(
+              child: CircularProgressIndicator(),
             ),
-          ),
-
-          // Nota de ayuda
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(
-                top: BorderSide(color: Colors.grey[300]!),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Usa el teclado para agregar emojis 😊',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _contenidoController.dispose();
-    super.dispose();
+  // Función para seleccionar imagen
+  Future<void> _seleccionarImagen() async {
+    if (_imagenes.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Solo puedes subir hasta 3 imágenes")),
+      );
+      return;
+    }
+
+    final picker = ImagePicker();
+    final XFile? img = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (img != null) {
+      setState(() {
+        _imagenes.add(File(img.path));
+      });
+    }
+  }
+
+  // Función para guardar la publicación
+  Future<void> _guardar() async {
+    if (_descripcionCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Escribe una descripción")),
+      );
+      return;
+    }
+
+    setState(() => _enviando = true);
+
+    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final token = widget.usuario['token'];
+
+    final success = await comunidadService.crearPublicacionConImagenes(
+      _descripcionCtrl.text.trim(),
+      _imagenes,
+      token,
+    );
+
+    setState(() => _enviando = false);
+
+    if (success) {
+      Navigator.pop(context, true); // Volver al feed
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al crear publicación")),
+      );
+    }
   }
 }

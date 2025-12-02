@@ -1,84 +1,98 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../services/comunidad_service.dart'; // Importar el servicio
+import '../services/comunidad_service.dart';
 
 class EditarPublicacionScreen extends StatefulWidget {
-  final int idPublicacion; // ID de la publicación a editar
+  final Map<String, dynamic> usuario;
+  final int idPublicacion;
 
-  const EditarPublicacionScreen({Key? key, required this.idPublicacion}) : super(key: key);
+  const EditarPublicacionScreen({
+    Key? key,
+    required this.usuario,
+    required this.idPublicacion,
+  }) : super(key: key);
 
   @override
   _EditarPublicacionScreenState createState() => _EditarPublicacionScreenState();
 }
 
 class _EditarPublicacionScreenState extends State<EditarPublicacionScreen> {
-  final _tituloController = TextEditingController();
-  final _contenidoController = TextEditingController();
-
-  bool _isLoading = false; // Estado de carga
+  final TextEditingController _descripcionCtrl = TextEditingController();
+  final List<File> _imagenes = [];
+  bool _enviando = false;
 
   @override
   void initState() {
     super.initState();
-    // Cargar los datos de la publicación al iniciar
-    _cargarPublicacion();
+    _cargarDatos();
   }
 
-  // Método para cargar la publicación a editar
-  Future<void> _cargarPublicacion() async {
+  Future<void> _cargarDatos() async {
     final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = 'token'; // Aquí deberías usar el token real
+    final token = widget.usuario['token'];
 
-    // Cargar los datos de la publicación por su ID
-    await comunidadService.obtenerPublicacionPorId(widget.idPublicacion, token);
+    final publicacion =
+        await comunidadService.obtenerPublicacionPorId(widget.idPublicacion, token);
 
-    // Si la publicación fue cargada, asignamos los datos a los controladores
-    if (comunidadService.posts.isNotEmpty) {
-      _tituloController.text = comunidadService.posts[0]['titulo'];
-      _contenidoController.text = comunidadService.posts[0]['contenido'];
+    if (publicacion != null) {
+      setState(() {
+        _descripcionCtrl.text = publicacion['descripcion'];
+        _imagenes.clear();
+        _imagenes.addAll(publicacion['imagenes'].map((img) => File(img)));
+      });
     }
   }
 
-  // Método para actualizar la publicación
-  Future<void> _actualizarPublicacion() async {
-    final titulo = _tituloController.text.trim();
-    final contenido = _contenidoController.text.trim();
-
-    if (titulo.isEmpty || contenido.isEmpty) {
+  Future<void> _seleccionarImagen() async {
+    if (_imagenes.length >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Por favor llena todos los campos")),
+        const SnackBar(content: Text("Solo puedes subir hasta 3 imágenes")),
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
-    final token = 'token'; // Aquí deberías usar el token real
-
-    // Llamamos a la función para actualizar la publicación
-    final response = await comunidadService.actualizarPublicacion(
-      widget.idPublicacion, 
-      titulo, 
-      contenido, 
-      token
+    final picker = ImagePicker();
+    final XFile? img = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
     );
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (img != null) {
+      setState(() {
+        _imagenes.add(File(img.path));
+      });
+    }
+  }
 
-    if (response['success'] == true) {
+  Future<void> _guardar() async {
+    if (_descripcionCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Publicación actualizada con éxito")),
+        const SnackBar(content: Text("Escribe una descripción")),
       );
-      // Redirigir a la pantalla principal o feed
-      Navigator.pop(context);
+      return;
+    }
+
+    setState(() => _enviando = true);
+
+    final comunidadService = Provider.of<ComunidadService>(context, listen: false);
+    final token = widget.usuario['token'];
+
+    final success = await comunidadService.actualizarPublicacionConImagenes(
+      widget.idPublicacion,
+      _descripcionCtrl.text.trim(),
+      _imagenes,
+      token,
+    );
+
+    setState(() => _enviando = false);
+
+    if (success) {
+      Navigator.pop(context, true); // Volver al feed
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? "Error al actualizar publicación")),
+        const SnackBar(content: Text("Error al actualizar publicación")),
       );
     }
   }
@@ -87,31 +101,109 @@ class _EditarPublicacionScreenState extends State<EditarPublicacionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Editar Publicación'),
-        backgroundColor: const Color(0xFFFFA726), // Calabaza
+        title: const Text("Editar Publicación"),
+        backgroundColor: Colors.orange,
+        actions: [
+          TextButton(
+            onPressed: _enviando ? null : _guardar,
+            child: Text(
+              "Guardar",
+              style: TextStyle(
+                color: _enviando ? Colors.grey[300] : Colors.white,
+                fontSize: 16,
+              ),
+            ),
+          )
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _tituloController,
-              decoration: const InputDecoration(labelText: "Título"),
+      body: ListView(
+        padding: const EdgeInsets.all(15),
+        children: [
+          // Campo de descripción
+          TextField(
+            controller: _descripcionCtrl,
+            maxLines: 5,
+            decoration: InputDecoration(
+              hintText: "Escribe una nueva descripción...",
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            TextField(
-              controller: _contenidoController,
-              decoration: const InputDecoration(labelText: "Contenido"),
-              maxLines: 4,
+          ),
+
+          const SizedBox(height: 20),
+
+          // Agregar imágenes
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: _seleccionarImagen,
+                icon: const Icon(Icons.image),
+                label: const Text("Agregar imagen"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text("(${_imagenes.length}/3)"),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          // Previsualizar imágenes
+          if (_imagenes.isNotEmpty)
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: List.generate(_imagenes.length, (i) {
+                return Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(
+                        _imagenes[i],
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      right: 5,
+                      top: 5,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _imagenes.removeAt(i);
+                          });
+                        },
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
             ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _actualizarPublicacion,
-                    child: const Text("Actualizar Publicación"),
-                  ),
-          ],
-        ),
+
+          const SizedBox(height: 30),
+
+          // Indicador de carga
+          if (_enviando)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
       ),
     );
   }
