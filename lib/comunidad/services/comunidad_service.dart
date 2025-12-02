@@ -9,7 +9,7 @@ class ComunidadService extends ChangeNotifier {
   List<dynamic> comentarios = [];
   String? ultimoError; // ✅ NUEVO: Almacenar último error
 
-  final String baseUrl = "http://192.168.0.5:18000/api";
+  final String baseUrl = "http:// 192.168.0.12:18000/api";
 
   // ================================
   // CREAR PUBLICACIÓN (Sin imágenes) - MEJORADO
