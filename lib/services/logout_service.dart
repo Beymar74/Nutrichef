@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 
 class LogoutService {
 
-  static const String baseUrl = "http://192.168.1.27:8000/api"; 
+  static const String baseUrl = "http://192.168.0.12:8000/api"; 
 
   static Future<bool> cerrarSesionSanctum(String token) async {
     final url = Uri.parse("$baseUrl/logout");
