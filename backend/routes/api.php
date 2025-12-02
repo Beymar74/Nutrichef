@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\ChefController;
+use App\Http\Controllers\FollowController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -53,3 +54,7 @@ Route::get('/unidades/listar', [IAController::class, 'listarUnidades']);
 // Chef
 Route::get('/chefs/{id}', [ChefController::class, 'show']);
 Route::get('/imagenes/recetas/{id}', [ChefController::class, 'getRecipeImage'])->name('recetas.imagen');
+
+// Seguidores
+Route::post('/chefs/{id}/follow', [FollowController::class, 'toggleFollow']);
+Route::get('/chefs/{id}/is-following', [FollowController::class, 'checkFollowStatus']);

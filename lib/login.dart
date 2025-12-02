@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'registro.dart';
 import 'home.dart';
-import 'chef/home_chef.dart'; // 🔹 IMPORTAR HomeChef
+import 'chef/home_chef.dart';
 import 'recuperar_password.dart';
 import 'services/api_service.dart';
-import 'services/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -20,190 +19,74 @@ class _LoginState extends State<Login> {
   bool _ocultarPassword = true;
   bool _isLoading = false;
 
-  //LOGIN NORMAL
-Future<void> _iniciarSesion() async {
-  String email = _emailController.text.trim();
-  String password = _passwordController.text;
+  // LOGIN NORMAL
+  Future<void> _iniciarSesion() async {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text;
 
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor completa todos los campos'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  final response = await ApiService.login(email: email, password: password);
-
-  setState(() => _isLoading = false);
-
-  if (response['success'] == true) {
-    final usuario = response['usuario'] ?? {};
-    final token = response['token'] ?? '';
-
-    if (token.isNotEmpty) {
-      usuario['token'] = token; // 🟢 Guardamos el token en usuario
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(response['message'] ?? 'Inicio de sesión exitoso'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    // 🔹 REDIRECCIÓN SEGÚN ROL
-    final idRol = usuario['id_rol'];
-    
-    print('🔍 DEBUG - ID del rol recibido: $idRol');
-    print('🔍 DEBUG - Tipo de dato: ${idRol.runtimeType}');
-    
-    // Convertir a int si viene como String
-    final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
-    
-    if (rolNumerico == 2) {
-      // ROL CHEF (id_rol = 2) → Redirigir a HomeChef
-      print('✅ Redirigiendo a HomeChef');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
-      );
-    } else {
-      // ROL USUARIO NORMAL (id_rol = 1) → Redirigir a Home
-      print('✅ Redirigiendo a Home (usuario normal)');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
-      );
-    }
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(response['message'] ?? 'Error al iniciar sesión'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-}
-
-  // 🔹 LOGIN CON GOOGLE
-  Future<void> _loginConGoogle() async {
-    final authService = AuthService();
-    final user = await authService.signInWithGoogle();
-
-    if (user == null) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Inicio de sesión cancelado o fallido'),
+          content: Text('Por favor completa todos los campos'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    final email = user.email ?? '';
-    final nombreCompleto = user.displayName ?? 'Usuario Google';
-    final foto = user.photoURL ?? '';
+    setState(() => _isLoading = true);
 
-    // 🔸 Verificar si ya existe en tu base de datos
-    final verificar = await ApiService.verificarUsuarioGoogle(email);
+    final response = await ApiService.login(email: email, password: password);
 
-    if (verificar['success'] == true && verificar['existe'] == true) {
-      // ✅ Usuario ya registrado → iniciar sesión
-      final usuario = verificar['usuario'] ?? {};
+    setState(() => _isLoading = false);
+
+    if (response['success'] == true) {
+      final usuario = response['usuario'] ?? {};
+      final token = response['token'] ?? '';
       
+      final userId = usuario['id']; 
+      final idRol = usuario['id_rol']; 
+
+      // 🟢 GUARDAR EN PREFERENCIAS
+      final prefs = await SharedPreferences.getInstance();
+      if (token.isNotEmpty) {
+        await prefs.setString('auth_token', token);
+        usuario['token'] = token; 
+      }
+      
+      if (userId != null) {
+        await prefs.setInt('auth_user_id', userId is int ? userId : int.parse(userId.toString()));
+      }
+
+      final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
+      await prefs.setInt('auth_role', rolNumerico);
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bienvenido de nuevo 👋'),
+        SnackBar(
+          content: Text(response['message'] ?? 'Inicio de sesión exitoso'),
           backgroundColor: Colors.green,
         ),
       );
 
-      // 🔹 REDIRECCIÓN SEGÚN ROL PARA GOOGLE
-      final idRol = usuario['id_rol'];
-      
-      print('🔍 DEBUG Google - ID del rol: $idRol');
-      print('🔍 DEBUG Google - Tipo: ${idRol.runtimeType}');
-      
-      // Convertir a int si viene como String
-      final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
-      
+      // 🔹 REDIRECCIÓN SEGÚN ROL
       if (rolNumerico == 2) {
-        // ROL CHEF → Redirigir a HomeChef
-        print('✅ Google: Redirigiendo a HomeChef');
-        Navigator.pushReplacement(
-          context,
+        print('✅ Redirigiendo a HomeChef');
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
         );
       } else {
-        // ROL USUARIO NORMAL → Redirigir a Home
-        print('✅ Google: Redirigiendo a Home (usuario normal)');
-        Navigator.pushReplacement(
-          context,
+        print('✅ Redirigiendo a Home (usuario normal)');
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
         );
       }
     } else {
-      // 🔹 Si no existe → registrar en base de datos
-      final partesNombre = nombreCompleto.split(' ');
-      final nombres = partesNombre.isNotEmpty ? partesNombre.first : nombreCompleto;
-      final apellido = partesNombre.length > 1 ? partesNombre.last : '';
-
-      final registro = await ApiService.registrarUsuarioGoogle(
-        nombres: nombres,
-        apellidoPaterno: apellido,
-        email: email,
-        foto: foto,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message'] ?? 'Error al iniciar sesión'),
+          backgroundColor: Colors.red,
+        ),
       );
-
-      if (registro['success'] == true) {
-        final usuario = registro['usuario'] ?? {
-          'nombres': nombres,
-          'email': email,
-          'foto': foto,
-        };
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cuenta creada con Google ✅'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // 🔹 REDIRECCIÓN SEGÚN ROL PARA NUEVO USUARIO GOOGLE
-        final idRol = usuario['id_rol'];
-        
-        print('🔍 DEBUG Google Nuevo - ID del rol: $idRol');
-        print('🔍 DEBUG Google Nuevo - Tipo: ${idRol.runtimeType}');
-        
-        // Convertir a int si viene como String
-        final rolNumerico = idRol is int ? idRol : int.tryParse(idRol.toString()) ?? 1;
-        
-        if (rolNumerico == 2) {
-          // ROL CHEF → Redirigir a HomeChef
-          print('✅ Google Nuevo: Redirigiendo a HomeChef');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => HomeChef(usuario: usuario)),
-          );
-        } else {
-          // ROL USUARIO NORMAL → Redirigir a Home
-          print('✅ Google Nuevo: Redirigiendo a Home (usuario normal)');
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => Home(usuario: usuario)),
-          );
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(registro['message'] ?? 'Error al registrar usuario'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
@@ -230,10 +113,13 @@ Future<void> _iniciarSesion() async {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // LOGO DE LA APP
                 Image.asset(
                   'assets/images/logo.png',
                   width: 100,
                   height: 100,
+                  errorBuilder: (context, error, stackTrace) => 
+                    const Icon(Icons.restaurant_menu, size: 80, color: Color(0xFFFF8C21)),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -341,30 +227,8 @@ Future<void> _iniciarSesion() async {
                         : const Text(
                             'Iniciar Sesión',
                             style: TextStyle(
-                                fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white,),
+                              fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white,),
                           ),
-                  ),
-                ),
-
-                const SizedBox(height: 15),
-
-                // BOTÓN REGISTRARSE
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _registrarse,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF8C21),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Registrarse',
-                      style: TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white,),
-                    ),
                   ),
                 ),
 
@@ -401,8 +265,6 @@ Future<void> _iniciarSesion() async {
                 ),
 
                 const SizedBox(height: 20),
-
-                const SizedBox(height: 25),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

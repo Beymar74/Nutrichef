@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // Asegúrate de tener esta dependencia
 
 // --- MODELO CHEF ---
 class Chef {
@@ -12,6 +13,7 @@ class Chef {
   final int followers;
   final int following;
   final int recipesCount;
+  final bool isFollowing;
 
   Chef({
     required this.id,
@@ -22,9 +24,9 @@ class Chef {
     required this.followers,
     required this.following,
     required this.recipesCount,
+    this.isFollowing = false,
   });
 
-  // Factory para crear un Chef desde el JSON de Laravel
   factory Chef.fromJson(Map<String, dynamic> json) {
     return Chef(
       id: json['id'] ?? 0,
@@ -35,11 +37,37 @@ class Chef {
       followers: json['followers_count'] ?? 0,
       following: json['following_count'] ?? 0,
       recipesCount: json['recipes_count'] ?? 0,
+      isFollowing: json['is_following'] ?? false,
+    );
+  }
+
+  // Método para clonar y modificar el estado (optimistic UI update)
+  Chef copyWith({
+    int? id,
+    String? name,
+    String? handle,
+    String? imageUrl,
+    String? bio,
+    int? followers,
+    int? following,
+    int? recipesCount,
+    bool? isFollowing,
+  }) {
+    return Chef(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      handle: handle ?? this.handle,
+      imageUrl: imageUrl ?? this.imageUrl,
+      bio: bio ?? this.bio,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
+      recipesCount: recipesCount ?? this.recipesCount,
+      isFollowing: isFollowing ?? this.isFollowing,
     );
   }
 }
 
-// --- MODELO RECETA (Para la lista inferior) ---
+// --- MODELO RECETA ---
 class Recipe {
   final int id;
   final String title;
@@ -68,9 +96,8 @@ class Recipe {
 
 // --- PANTALLA PRINCIPAL ---
 class ChefProfileScreen extends StatefulWidget {
-  final int chefId; // ID del chef que queremos ver
+  final int chefId;
 
-  // Por defecto probamos con el ID 1 si no se pasa nada
   const ChefProfileScreen({Key? key, this.chefId = 1}) : super(key: key);
 
   @override
@@ -78,48 +105,143 @@ class ChefProfileScreen extends StatefulWidget {
 }
 
 class _ChefProfileScreenState extends State<ChefProfileScreen> {
-  // Colores de tu marca
   final Color brandColor = const Color(0xFFFF8E00);
-  final Color actionButtonColor = const Color(0xFFFFC107);
-
-  // Estado
+  
+  // Estado de la pantalla
   bool _isLoading = true;
   bool _hasError = false;
+  bool _isFollowLoading = false;
+  
   late Chef _chef;
   List<Recipe> _recipes = [];
+
+  // Datos del usuario logueado (quien sigue)
+  int? _currentUserId;
+  String? _authToken;
+
+  // CONFIGURACIÓN API
+  final String baseUrl = 'http://192.168.0.16:18000/api'; 
 
   @override
   void initState() {
     super.initState();
-    _fetchChefData();
+    _loadUserAndFetchData();
   }
 
-  // Lógica para obtener datos del backend Laravel
-  Future<void> _fetchChefData() async {
-    // ⚠️ IMPORTANTE: Cambia esta IP por la de tu servidor Laravel
-    // Si usas emulador Android: 10.0.2.2:8000
-    // Si usas dispositivo físico: Tu IP local (ej. 192.168.1.X:8000)
-    final String baseUrl = 'http://192.168.0.16:18000/api'; 
-
+  // 1. Cargar ID del usuario logueado desde SharedPreferences
+  Future<void> _loadUserAndFetchData() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/chefs/${widget.chefId}'));
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        // Obtenemos el ID guardado en el Login. Si no existe, es null.
+        _currentUserId = prefs.getInt('auth_user_id');
+        _authToken = prefs.getString('auth_token');
+      });
+      
+      // Una vez tenemos el ID, pedimos los datos del chef
+      await _fetchChefData();
+    } catch (e) {
+      print("Error cargando preferencias: $e");
+      // Intentamos cargar de todas formas
+      await _fetchChefData();
+    }
+  }
+
+  // 2. Obtener datos del Chef y Recetas
+  Future<void> _fetchChefData() async {
+    try {
+      // Enviamos 'follower_id' para que el backend sepa si ya lo seguimos
+      String urlStr = '$baseUrl/chefs/${widget.chefId}';
+      if (_currentUserId != null) {
+        urlStr += '?follower_id=$_currentUserId';
+      }
+
+      final response = await http.get(Uri.parse(urlStr));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          _chef = Chef.fromJson(data['chef']);
-          _recipes = (data['recetas'] as List).map((r) => Recipe.fromJson(r)).toList();
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _chef = Chef.fromJson(data['chef']);
+            _recipes = (data['recetas'] as List).map((r) => Recipe.fromJson(r)).toList();
+            _isLoading = false;
+          });
+        }
       } else {
-        throw Exception('Error al cargar perfil');
+        throw Exception('Error al cargar perfil: ${response.statusCode}');
       }
     } catch (e) {
       print("Error de conexión: $e");
-      setState(() {
-        _isLoading = false;
-        _hasError = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+        });
+      }
+    }
+  }
+
+  // 3. Lógica del Botón Seguir
+  Future<void> _toggleFollow() async {
+    // Validaciones previas
+    if (_isFollowLoading) return;
+    if (_currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Debes iniciar sesión para seguir a un chef.")),
+      );
+      return;
+    }
+
+    setState(() => _isFollowLoading = true);
+
+    try {
+      final url = Uri.parse('$baseUrl/chefs/${widget.chefId}/follow');
+      
+      final response = await http.post(
+        url,
+        body: {
+          'follower_id': _currentUserId.toString(),
+        },
+        // headers: {'Authorization': 'Bearer $_authToken'}, // Si usas headers auth
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Éxito: Actualizamos la UI con los datos reales del servidor
+        final bool newStatus = responseData['is_following'];
+        final int newFollowersCount = responseData['followers_count'];
+
+        setState(() {
+          _chef = _chef.copyWith(
+            isFollowing: newStatus,
+            followers: newFollowersCount
+          );
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(responseData['message'] ?? (newStatus ? "Siguiendo" : "Dejaste de seguir")),
+            backgroundColor: brandColor,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      } else {
+        // Error de lógica (ej: seguirse a sí mismo)
+        String errorMsg = responseData['message'] ?? 'Error desconocido';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("⚠️ $errorMsg"), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      print("Excepción follow: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error de conexión al intentar seguir.")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isFollowLoading = false);
+      }
     }
   }
 
@@ -134,24 +256,32 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
 
     if (_hasError) {
       return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: brandColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              SizedBox(height: 10),
-              Text("No se pudo conectar con el servidor"),
-              SizedBox(height: 10),
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 10),
+              const Text("No se pudo cargar el perfil"),
+              const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
                   setState(() {
                     _isLoading = true;
                     _hasError = false;
                   });
-                  _fetchChefData();
+                  _loadUserAndFetchData();
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: brandColor),
-                child: Text("Reintentar"),
+                child: const Text("Reintentar"),
               )
             ],
           ),
@@ -178,7 +308,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.more_vert, color: Colors.black),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onPressed: () {},
           ),
         ],
@@ -186,7 +316,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             
             // 1. Foto de Perfil
             Container(
@@ -204,12 +334,12 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // 2. Nombre y Handle
             Text(
               _chef.name,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -217,14 +347,14 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
             ),
             Text(
               _chef.handle,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
                 fontWeight: FontWeight.w500,
               ),
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             // 3. Estadísticas
             Row(
@@ -238,7 +368,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
               ],
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             // 4. Botones de Acción
             Padding(
@@ -247,28 +377,41 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _toggleFollow, // Función conectada
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: brandColor, 
-                        foregroundColor: Colors.white,
+                        // Cambia visualmente si ya sigues al usuario
+                        backgroundColor: _chef.isFollowing ? Colors.white : brandColor, 
+                        foregroundColor: _chef.isFollowing ? brandColor : Colors.white,
+                        side: _chef.isFollowing ? BorderSide(color: brandColor, width: 2) : null,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        elevation: 4,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: _chef.isFollowing ? 0 : 4,
                         shadowColor: brandColor.withOpacity(0.4),
                       ),
-                      child: Text("Seguir", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: _isFollowLoading 
+                        ? SizedBox(
+                            height: 20, width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2, 
+                              color: _chef.isFollowing ? brandColor : Colors.white
+                            )
+                          )
+                        : Text(
+                            _chef.isFollowing ? "Siguiendo" : "Seguir",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                          ),
                     ),
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey[300]!),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.mail_outline, color: Colors.black54),
+                      icon: const Icon(Icons.mail_outline, color: Colors.black54),
                       onPressed: () {},
                     ),
                   ),
@@ -276,22 +419,22 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
               ),
             ),
 
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
 
             // 5. Sección de Recetas
             Container(
               width: double.infinity,
-              padding: EdgeInsets.only(top: 24),
+              padding: const EdgeInsets.only(top: 24),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
-                borderRadius: BorderRadius.only(
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(40),
                   topRight: Radius.circular(40),
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.03),
-                    offset: Offset(0, -5),
+                    offset: const Offset(0, -5),
                     blurRadius: 10,
                   )
                 ]
@@ -304,7 +447,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        const Text(
                           "Recetas del Chef",
                           style: TextStyle(
                             fontSize: 18,
@@ -312,28 +455,28 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        Icon(Icons.filter_list, color: Colors.grey),
+                        const Icon(Icons.filter_list, color: Colors.grey),
                       ],
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   
                   // Lista Dinámica de Recetas
                   _recipes.isEmpty 
-                    ? Padding(
-                        padding: const EdgeInsets.all(20.0),
+                    ? const Padding(
+                        padding: EdgeInsets.all(20.0),
                         child: Center(child: Text("Este chef aún no tiene recetas.")),
                       )
                     : ListView.builder(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: _recipes.length,
-                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemBuilder: (context, index) {
                           return _buildRecipeCard(_recipes[index], brandColor);
                         },
                       ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -348,13 +491,13 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
       children: [
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
@@ -369,7 +512,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
 
   Widget _buildRecipeCard(Recipe recipe, Color brandColor) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       height: 110,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -378,7 +521,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -387,18 +530,24 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
           // Imagen de la receta
           Container(
             width: 110,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 bottomLeft: Radius.circular(20),
               ),
-              image: DecorationImage(
-                image: NetworkImage(recipe.imageUrl),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+              ),
+              child: Image.network(
+                recipe.imageUrl,
                 fit: BoxFit.cover,
-                // Manejo de error si la imagen no carga
-                onError: (exception, stackTrace) {
-                  // Puedes poner un placeholder aquí si quieres
-                }
+                errorBuilder: (ctx, error, stackTrace) => Container(
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.restaurant, color: Colors.grey),
+                ),
               ),
             ),
           ),
@@ -413,24 +562,24 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
                     recipe.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey),
-                      SizedBox(width: 4),
+                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
                       Text(
                         "${recipe.timeMinutes} min",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ],
                   ),
-                  Spacer(),
+                  const Spacer(),
                   Row(
                     children: [
                       Icon(Icons.star, size: 16, color: brandColor),
-                      Text(" ${recipe.rating}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text(" ${recipe.rating}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   )
                 ],
@@ -442,7 +591,7 @@ class _ChefProfileScreenState extends State<ChefProfileScreen> {
             child: Align(
               alignment: Alignment.topRight,
               child: Container(
-                padding: EdgeInsets.all(6),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: brandColor.withOpacity(0.1),
                   shape: BoxShape.circle

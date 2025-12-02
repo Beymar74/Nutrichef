@@ -1,14 +1,115 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+// Tus imports corregidos
 import 'asistente_cocina.dart'; 
 import 'receta_model.dart';
 import 'asistente_voz_modal.dart';
 import 'screens/chef/chef_profile_screen.dart';
 
-class DetallesRecetaScreen extends StatelessWidget {
+class DetallesRecetaScreen extends StatefulWidget {
   final Map<String, dynamic> receta;
 
-  const DetallesRecetaScreen({Key? key, required this.receta})
-      : super(key: key);
+  const DetallesRecetaScreen({Key? key, required this.receta}) : super(key: key);
+
+  @override
+  State<DetallesRecetaScreen> createState() => _DetallesRecetaScreenState();
+}
+
+class _DetallesRecetaScreenState extends State<DetallesRecetaScreen> {
+  // Estado para el seguimiento
+  bool _isFollowing = false;
+  bool _isFollowLoading = false;
+  int? _currentUserId;
+  
+  // CONFIGURACIÓN API (Tu IP corregida)
+  final String baseUrl = 'http://192.168.0.16:18000/api'; 
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFollowStatus();
+  }
+
+  // 1. Verificar si ya sigo a este chef al entrar
+  Future<void> _checkFollowStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('auth_user_id');
+    setState(() {
+      _currentUserId = userId;
+    });
+
+    if (userId == null) return;
+
+    final int chefId = widget.receta['id_usuario_creador'] ?? widget.receta['chef_id'] ?? 1;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/chefs/$chefId/is-following?follower_id=$userId'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            _isFollowing = data['is_following'] ?? false;
+          });
+        }
+      }
+    } catch (e) {
+      print("Error verificando follow: $e");
+    }
+  }
+
+  // 2. Acción de Seguir/Dejar de seguir
+  Future<void> _toggleFollow() async {
+    if (_isFollowLoading) return;
+    if (_currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Inicia sesión para seguir al chef")),
+      );
+      return;
+    }
+
+    setState(() => _isFollowLoading = true);
+
+    final int chefId = widget.receta['id_usuario_creador'] ?? widget.receta['chef_id'] ?? 1;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/chefs/$chefId/follow'),
+        body: {'follower_id': _currentUserId.toString()},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            _isFollowing = data['is_following'];
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message']),
+              backgroundColor: const Color(0xFFFF8C00),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+         // Manejo de errores (ej: auto-follow)
+         final errorData = json.decode(response.body);
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorData['message'] ?? "Error al seguir"), backgroundColor: Colors.red),
+         );
+      }
+    } catch (e) {
+      print("Error follow: $e");
+    } finally {
+      if (mounted) setState(() => _isFollowLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +139,7 @@ class DetallesRecetaScreen extends StatelessWidget {
                 color: Color(0xFFFF69B4),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.favorite,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.favorite, color: Colors.white, size: 20),
             ),
             onPressed: () {},
           ),
@@ -53,11 +150,7 @@ class DetallesRecetaScreen extends StatelessWidget {
                 color: Color(0xFFFF8C00),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.share,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.share, color: Colors.white, size: 20),
             ),
             onPressed: () {},
           ),
@@ -107,11 +200,7 @@ class DetallesRecetaScreen extends StatelessWidget {
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.play_arrow,
-                color: Colors.white,
-                size: 24,
-              ),
+              Icon(Icons.play_arrow, color: Colors.white, size: 24),
               SizedBox(width: 8),
               Text(
                 'Empezar Ahora',
@@ -143,9 +232,7 @@ class DetallesRecetaScreen extends StatelessWidget {
   }
 
   void _navegarAAsistenteCocina(BuildContext context, bool conAsistenteVoz) {
-    // Asegúrate de que tu modelo Receta tenga un fromJson o constructor adecuado
-    // Si da error aquí, verifica widgets/receta_model.dart
-    final recetaObj = Receta.fromJson(receta); 
+    final recetaObj = Receta.fromJson(widget.receta); 
     
     Navigator.push(
       context,
@@ -166,7 +253,7 @@ class DetallesRecetaScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(
           image: NetworkImage(
-            receta['imagen'] ?? 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
+            widget.receta['imagen'] ?? 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
           ),
           fit: BoxFit.cover,
         ),
@@ -198,7 +285,7 @@ class DetallesRecetaScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      receta['titulo'] ?? 'Sin título',
+                      widget.receta['titulo'] ?? 'Sin título',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -208,32 +295,15 @@ class DetallesRecetaScreen extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.remove_red_eye,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                      const Icon(Icons.remove_red_eye, color: Colors.white, size: 18),
                       const SizedBox(width: 4),
-                      const Text(
-                        '5',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
+                      const Text('5', style: TextStyle(color: Colors.white, fontSize: 14)),
                       const SizedBox(width: 16),
-                      const Icon(
-                        Icons.access_time,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                      const Icon(Icons.access_time, color: Colors.white, size: 18),
                       const SizedBox(width: 4),
                       Text(
-                        '${receta['tiempo_preparacion'] ?? 'N/A'} min',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
+                        '${widget.receta['tiempo_preparacion'] ?? 'N/A'} min',
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
                       ),
                     ],
                   ),
@@ -246,78 +316,92 @@ class DetallesRecetaScreen extends StatelessWidget {
     );
   }
 
-  // Aceptamos BuildContext como parámetro
+  // INFORMACIÓN DEL CHEF Y BOTÓN SEGUIR
   Widget _buildChefInfo(BuildContext context) {
-    // Intentamos obtener el ID del chef desde el mapa de la receta.
-    // Usamos 'id_usuario_creador' (como en tu BD) o un fallback a 1.
-    final int chefId = receta['id_usuario_creador'] ?? receta['chef_id'] ?? 1;
+    final int chefId = widget.receta['id_usuario_creador'] ?? widget.receta['chef_id'] ?? 1;
 
-    return GestureDetector(
-      onTap: () {
-        // Navegación corregida: Pasamos solo el chefId
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChefProfileScreen(
-              chefId: chefId, 
-            ),
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            CircleAvatar(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          // Avatar clicable para ir al perfil
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChefProfileScreen(chefId: chefId),
+                ),
+              ).then((_) => _checkFollowStatus()); // Actualizar estado al volver
+            },
+            child: CircleAvatar(
               radius: 30,
               backgroundImage: NetworkImage(
-                'https://ui-avatars.com/api/?name=${Uri.encodeComponent(receta['chef'] ?? 'Chef')}&background=FF8E00&color=fff',
+                'https://ui-avatars.com/api/?name=${Uri.encodeComponent(widget.receta['chef'] ?? 'Chef')}&background=FF8E00&color=fff',
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
+          ),
+          const SizedBox(width: 12),
+          // Info clicable para ir al perfil
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChefProfileScreen(chefId: chefId),
+                  ),
+                ).then((_) => _checkFollowStatus());
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    receta['chef_username'] ?? '@nutrichef',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                    widget.receta['chef_username'] ?? '@nutrichef',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                   Text(
-                    receta['chef'] ?? 'Chef Nutrichef',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    widget.receta['chef'] ?? 'Chef Nutrichef',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
             ),
-            // Botón Seguir (Visual)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD700),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Seguir',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+          ),
+          
+          // BOTÓN SEGUIR FUNCIONAL
+          SizedBox(
+            height: 36,
+            child: ElevatedButton(
+              onPressed: _toggleFollow,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isFollowing ? Colors.white : const Color(0xFFFFD700),
+                foregroundColor: _isFollowing ? const Color(0xFFFFD700) : Colors.black87,
+                elevation: 0,
+                side: _isFollowing ? const BorderSide(color: Color(0xFFFFD700)) : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
               ),
+              child: _isFollowLoading 
+                ? SizedBox(
+                    height: 16, width: 16, 
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2, 
+                      color: _isFollowing ? const Color(0xFFFFD700) : Colors.white
+                    )
+                  )
+                : Text(
+                    _isFollowing ? 'Siguiendo' : 'Seguir',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
             ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.more_vert,
-              color: Colors.grey[600],
-            ),
-          ],
-        ),
+          ),
+          
+          const SizedBox(width: 8),
+          Icon(Icons.more_vert, color: Colors.grey[600]),
+        ],
       ),
     );
   }
@@ -339,29 +423,18 @@ class DetallesRecetaScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.access_time,
-                color: Colors.grey,
-                size: 16,
-              ),
+              const Icon(Icons.access_time, color: Colors.grey, size: 16),
               const SizedBox(width: 4),
               Text(
-                '${receta['tiempo_preparacion'] ?? 'N/A'} min',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                '${widget.receta['tiempo_preparacion'] ?? 'N/A'} min',
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            receta['resumen'] ?? 'Descripción no disponible.',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-              height: 1.5,
-            ),
+            widget.receta['resumen'] ?? 'Descripción no disponible.',
+            style: TextStyle(color: Colors.grey[800], fontSize: 14, height: 1.5),
           ),
         ],
       ),
@@ -369,7 +442,7 @@ class DetallesRecetaScreen extends StatelessWidget {
   }
 
   Widget _buildIngredientesSection() {
-    final List<dynamic> ingredientesData = receta['ingredientes'] ?? [];
+    final List<dynamic> ingredientesData = widget.receta['ingredientes'] ?? [];
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -388,10 +461,7 @@ class DetallesRecetaScreen extends StatelessWidget {
           if (ingredientesData.isEmpty)
             const Text(
               'No hay ingredientes disponibles',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 14),
             )
           else
             ListView.builder(
